@@ -23,9 +23,11 @@ __pycache__/
 dist/
 build/
 .cache/
+.npm-cache/
 .parcel-cache/
 .next/
 coverage/
+*.tsbuildinfo
 
 # Editor metadata
 .idea/
