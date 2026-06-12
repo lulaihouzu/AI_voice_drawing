@@ -2,6 +2,8 @@ export type ShapeType = "circle" | "rect" | "line" | "arrow" | "text";
 
 export type Direction = "up" | "down" | "left" | "right";
 
+export type ShapeSize = "small" | "normal" | "large";
+
 export type PositionRegion =
   | "center"
   | "left"
@@ -36,8 +38,22 @@ export type ShapePatch = {
   scale?: number;
 };
 
+export type ConnectionSpec = {
+  mode: "connect" | "point-to";
+  from?: string;
+  to?: string;
+};
+
 export type DrawingCommand =
-  | { type: "create"; shape: ShapeType; style?: ShapeStyle; position?: PositionSpec; text?: string }
+  | {
+      type: "create";
+      shape: ShapeType;
+      style?: ShapeStyle;
+      position?: PositionSpec;
+      text?: string;
+      size?: ShapeSize;
+      connection?: ConnectionSpec;
+    }
   | { type: "update"; target: TargetSpec; patch: ShapePatch }
   | { type: "move"; target: TargetSpec; direction: Direction; distance?: number }
   | { type: "delete"; target: TargetSpec }
