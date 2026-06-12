@@ -4,17 +4,30 @@ import { executeDrawingCommand } from "../commands/executor";
 import { normalizeCommands } from "../commands/normalizer";
 import { parseCommand } from "../commands/parser";
 import type { CanvasObject, CanvasSnapshot, FeedbackLevel, FeedbackMessage } from "../commands/types";
+import type { SpeechStatus } from "../speech/SpeechInput";
+
+export type CommandRunResult = {
+  ok: boolean;
+  changed: boolean;
+  message: string;
+  level: FeedbackLevel;
+  commandCount: number;
+};
 
 type DrawingState = {
   objects: CanvasObject[];
   activeObjectId?: string;
   lastCreatedObjectId?: string;
   lastTranscript: string;
+  lastInterimTranscript: string;
+  voiceStatus: SpeechStatus;
   undoStack: CanvasSnapshot[];
   redoStack: CanvasSnapshot[];
   feedback: FeedbackMessage[];
-  runCommandText: (text: string) => void;
+  runCommandText: (text: string) => CommandRunResult;
   addFeedback: (message: string, level?: FeedbackLevel) => void;
+  setInterimTranscript: (text: string) => void;
+  setVoiceStatus: (status: SpeechStatus) => void;
 };
 
 export const useDrawingStore = create<DrawingState>((set, get) => ({
@@ -22,19 +35,28 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   activeObjectId: undefined,
   lastCreatedObjectId: undefined,
   lastTranscript: "",
+  lastInterimTranscript: "",
+  voiceStatus: "idle",
   undoStack: [],
   redoStack: [],
   feedback: [createFeedback("工作台已就绪。", "info")],
 
   runCommandText: (text) => {
     const currentState = get();
-    set({ lastTranscript: text });
+    set({ lastTranscript: text, lastInterimTranscript: "" });
 
     const parsed = parseCommand(text);
 
     if (!parsed.ok) {
-      get().addFeedback(`${parsed.reason} 可尝试：${parsed.suggestions.join("、")}`, "error");
-      return;
+      const message = `${parsed.reason} 可尝试：${parsed.suggestions.join("、")}`;
+      get().addFeedback(message, "error");
+      return {
+        ok: false,
+        changed: false,
+        message,
+        level: "error",
+        commandCount: 0,
+      };
     }
 
     const commands = normalizeCommands(parsed.commands, {
@@ -43,13 +65,11 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
     });
 
     if (commands.some((command) => command.type === "undo")) {
-      runUndo(set, get);
-      return;
+      return runUndo(set, get);
     }
 
     if (commands.some((command) => command.type === "redo")) {
-      runRedo(set, get);
-      return;
+      return runRedo(set, get);
     }
 
     const before: CanvasSnapshot = {
@@ -74,14 +94,25 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       message = result.message;
     });
 
+    const feedbackMessage = changed && commands.length > 1 ? `已执行 ${commands.length} 个操作。` : message;
+    const feedbackLevel: FeedbackLevel = changed ? "success" : "info";
+
     set((state) => ({
       objects: nextObjects,
       activeObjectId: nextActiveObjectId,
       lastCreatedObjectId: nextActiveObjectId,
       undoStack: changed ? [...state.undoStack, before] : state.undoStack,
       redoStack: changed ? [] : state.redoStack,
-      feedback: [createFeedback(message, changed ? "success" : "info"), ...state.feedback].slice(0, 6),
+      feedback: [createFeedback(feedbackMessage, feedbackLevel), ...state.feedback].slice(0, 6),
     }));
+
+    return {
+      ok: true,
+      changed,
+      message: feedbackMessage,
+      level: feedbackLevel,
+      commandCount: commands.length,
+    };
   },
 
   addFeedback: (message, level = "info") => {
@@ -89,42 +120,84 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       feedback: [createFeedback(message, level), ...state.feedback].slice(0, 6),
     }));
   },
+
+  setInterimTranscript: (text) => {
+    set({ lastInterimTranscript: text });
+  },
+
+  setVoiceStatus: (status) => {
+    set({ voiceStatus: status });
+  },
 }));
 
-function runUndo(set: StoreSet, get: StoreGet) {
+function runUndo(set: StoreSet, get: StoreGet): CommandRunResult {
   const state = get();
   const snapshot = state.undoStack[state.undoStack.length - 1];
 
   if (!snapshot) {
-    state.addFeedback("没有可撤销的操作。", "info");
-    return;
+    const message = "没有可撤销的操作。";
+    state.addFeedback(message, "info");
+    return {
+      ok: true,
+      changed: false,
+      message,
+      level: "info",
+      commandCount: 1,
+    };
   }
+
+  const message = "已撤销。";
 
   set({
     objects: snapshot.objects,
     activeObjectId: snapshot.activeObjectId,
     undoStack: state.undoStack.slice(0, -1),
     redoStack: [...state.redoStack, { objects: state.objects, activeObjectId: state.activeObjectId }],
-    feedback: [createFeedback("已撤销。", "success"), ...state.feedback].slice(0, 6),
+    feedback: [createFeedback(message, "success"), ...state.feedback].slice(0, 6),
   });
+
+  return {
+    ok: true,
+    changed: true,
+    message,
+    level: "success",
+    commandCount: 1,
+  };
 }
 
-function runRedo(set: StoreSet, get: StoreGet) {
+function runRedo(set: StoreSet, get: StoreGet): CommandRunResult {
   const state = get();
   const snapshot = state.redoStack[state.redoStack.length - 1];
 
   if (!snapshot) {
-    state.addFeedback("没有可重做的操作。", "info");
-    return;
+    const message = "没有可重做的操作。";
+    state.addFeedback(message, "info");
+    return {
+      ok: true,
+      changed: false,
+      message,
+      level: "info",
+      commandCount: 1,
+    };
   }
+
+  const message = "已重做。";
 
   set({
     objects: snapshot.objects,
     activeObjectId: snapshot.activeObjectId,
     redoStack: state.redoStack.slice(0, -1),
     undoStack: [...state.undoStack, { objects: state.objects, activeObjectId: state.activeObjectId }],
-    feedback: [createFeedback("已重做。", "success"), ...state.feedback].slice(0, 6),
+    feedback: [createFeedback(message, "success"), ...state.feedback].slice(0, 6),
   });
+
+  return {
+    ok: true,
+    changed: true,
+    message,
+    level: "success",
+    commandCount: 1,
+  };
 }
 
 function createFeedback(message: string, level: FeedbackLevel): FeedbackMessage {

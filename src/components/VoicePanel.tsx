@@ -1,14 +1,14 @@
-import { useMemo, useRef, useState } from "react";
-import { Download, Mic, MicOff, RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { Mic, MicOff, Volume2 } from "lucide-react";
 import { SpeechInput } from "../speech/SpeechInput";
 import { useDrawingStore } from "../state/store";
-
-type VoiceStatus = "idle" | "listening";
 
 export function VoicePanel() {
   const runCommandText = useDrawingStore((state) => state.runCommandText);
   const addFeedback = useDrawingStore((state) => state.addFeedback);
-  const [status, setStatus] = useState<VoiceStatus>("idle");
+  const setInterimTranscript = useDrawingStore((state) => state.setInterimTranscript);
+  const setVoiceStatus = useDrawingStore((state) => state.setVoiceStatus);
+  const voiceStatus = useDrawingStore((state) => state.voiceStatus);
   const speechInputRef = useRef<SpeechInput | null>(null);
   const isSupported = useMemo(() => SpeechInput.isSupported(), []);
 
@@ -17,14 +17,18 @@ export function VoicePanel() {
       speechInputRef.current = new SpeechInput({
         onResult: (result) => {
           if (result.isFinal && result.text.trim()) {
-            runCommandText(result.text);
+            const runResult = runCommandText(result.text);
+            speakFeedback(runResult.message);
+            return;
           }
+
+          setInterimTranscript(result.text);
         },
         onError: (message) => {
           addFeedback(message, "error");
         },
         onStatusChange: (nextStatus) => {
-          setStatus(nextStatus === "listening" ? "listening" : "idle");
+          setVoiceStatus(nextStatus);
         },
       });
     }
@@ -35,18 +39,25 @@ export function VoicePanel() {
   function toggleListening() {
     if (!isSupported) {
       addFeedback("当前浏览器不支持语音识别。", "error");
+      setVoiceStatus("unsupported");
       return;
     }
 
     const speechInput = getSpeechInput();
 
-    if (status === "listening") {
+    if (voiceStatus === "listening") {
       speechInput.stop();
       return;
     }
 
     speechInput.start();
   }
+
+  useEffect(() => {
+    return () => {
+      speechInputRef.current?.stop();
+    };
+  }, []);
 
   return (
     <section className="panel" aria-label="语音控制">
@@ -55,25 +66,52 @@ export function VoicePanel() {
         <h2>语音</h2>
       </div>
 
-      <button className="voice-button" type="button" onClick={toggleListening} disabled={!isSupported}>
-        {status === "listening" ? <MicOff aria-hidden="true" size={28} /> : <Mic aria-hidden="true" size={28} />}
-        <span>{status === "listening" ? "停止" : "开始"}</span>
+      <button
+        aria-pressed={voiceStatus === "listening"}
+        className="voice-button"
+        type="button"
+        onClick={toggleListening}
+        disabled={!isSupported}
+      >
+        {voiceStatus === "listening" ? <MicOff aria-hidden="true" size={28} /> : <Mic aria-hidden="true" size={28} />}
+        <span>{voiceStatus === "listening" ? "停止监听" : "开始监听"}</span>
       </button>
 
-      <div className="quick-actions" aria-label="全局操作">
-        <button type="button" onClick={() => runCommandText("撤销")} title="撤销">
-          <RotateCcw aria-hidden="true" size={18} />
-        </button>
-        <button type="button" onClick={() => runCommandText("重做")} title="重做">
-          <RotateCw aria-hidden="true" size={18} />
-        </button>
-        <button type="button" onClick={() => runCommandText("清空画布")} title="清空画布">
-          <Trash2 aria-hidden="true" size={18} />
-        </button>
-        <button type="button" onClick={() => runCommandText("导出为图片")} title="导出图片">
-          <Download aria-hidden="true" size={18} />
-        </button>
+      <div className="voice-state">
+        <span className={`voice-pill status-${voiceStatus}`}>{getVoiceStatusLabel(voiceStatus)}</span>
+        <span className="voice-audio">
+          <Volume2 aria-hidden="true" size={16} />
+          反馈播报
+        </span>
       </div>
     </section>
   );
+}
+
+function speakFeedback(message: string) {
+  if (typeof window === "undefined" || !window.speechSynthesis) {
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = "zh-CN";
+  utterance.rate = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
+function getVoiceStatusLabel(status: ReturnType<typeof useDrawingStore.getState>["voiceStatus"]) {
+  if (status === "listening") {
+    return "正在监听";
+  }
+
+  if (status === "error") {
+    return "识别异常";
+  }
+
+  if (status === "unsupported") {
+    return "不支持语音";
+  }
+
+  return "待机";
 }
