@@ -23,6 +23,7 @@ __pycache__/
 dist/
 build/
 .cache/
+.vite/
 .npm-cache/
 .parcel-cache/
 .next/
