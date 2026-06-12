@@ -142,6 +142,8 @@
 - 可运行的 AI 语音绘图工具
 - 项目 README 文档
 - 设计文档，说明计划支持的指令能力、最终实现情况和未完成原因
+- 产品文档：[`docs/product.md`](docs/product.md)
+- 技术架构文档：[`docs/architecture.md`](docs/architecture.md)
 - 必要的测试说明或演示材料
 
 ## 后续里程碑
