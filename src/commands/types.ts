@@ -1,0 +1,80 @@
+export type ShapeType = "circle" | "rect" | "line" | "arrow" | "text";
+
+export type Direction = "up" | "down" | "left" | "right";
+
+export type PositionRegion =
+  | "center"
+  | "left"
+  | "right"
+  | "top"
+  | "bottom"
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
+
+export type ShapeStyle = {
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  fontSize?: number;
+};
+
+export type PositionSpec = {
+  region?: PositionRegion;
+  x?: number;
+  y?: number;
+};
+
+export type TargetSpec = {
+  ref: "active" | "last-created";
+};
+
+export type ShapePatch = {
+  fill?: string;
+  stroke?: string;
+  scale?: number;
+};
+
+export type DrawingCommand =
+  | { type: "create"; shape: ShapeType; style?: ShapeStyle; position?: PositionSpec; text?: string }
+  | { type: "update"; target: TargetSpec; patch: ShapePatch }
+  | { type: "move"; target: TargetSpec; direction: Direction; distance?: number }
+  | { type: "delete"; target: TargetSpec }
+  | { type: "undo" }
+  | { type: "redo" }
+  | { type: "clear" }
+  | { type: "export"; format: "png" };
+
+export type ParseResult =
+  | { ok: true; rawText: string; commands: DrawingCommand[] }
+  | { ok: false; rawText: string; reason: string; suggestions: string[] };
+
+export type CanvasObject = {
+  id: string;
+  type: ShapeType;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  radius?: number;
+  rotation?: number;
+  style: ShapeStyle;
+  text?: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type CanvasSnapshot = {
+  objects: CanvasObject[];
+  activeObjectId?: string;
+};
+
+export type FeedbackLevel = "info" | "success" | "error";
+
+export type FeedbackMessage = {
+  id: string;
+  level: FeedbackLevel;
+  message: string;
+  createdAt: number;
+};
