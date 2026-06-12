@@ -1,0 +1,204 @@
+import { describe, expect, it } from "vitest";
+import { executeDrawingCommand, type ExecutionState } from "../src/commands/executor";
+
+function emptyState(): ExecutionState {
+  return {
+    objects: [],
+    activeObjectId: undefined,
+  };
+}
+
+describe("executeDrawingCommand", () => {
+  it("creates sized shapes and marks the new object active", () => {
+    const result = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        size: "large",
+        style: {
+          fill: "#ef4444",
+        },
+        position: {
+          region: "left",
+        },
+      },
+      emptyState(),
+    );
+
+    expect(result.changed).toBe(true);
+    expect(result.objects).toHaveLength(1);
+    expect(result.activeObjectId).toBe(result.objects[0].id);
+    expect(result.objects[0]).toMatchObject({
+      type: "circle",
+      radius: 72,
+      x: 260,
+      y: 310,
+      style: {
+        fill: "#ef4444",
+        stroke: "#1f2937",
+        strokeWidth: 2,
+      },
+    });
+  });
+
+  it("creates text objects with extracted content and font size", () => {
+    const result = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "text",
+        text: "开始",
+        size: "small",
+      },
+      emptyState(),
+    );
+
+    expect(result.objects[0]).toMatchObject({
+      type: "text",
+      text: "开始",
+      style: {
+        fontSize: 22,
+        stroke: "#1f2937",
+      },
+    });
+  });
+
+  it("creates an arrow between the last two drawable objects", () => {
+    const first = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        position: {
+          region: "left",
+        },
+      },
+      emptyState(),
+    );
+    const second = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+        position: {
+          region: "right",
+        },
+      },
+      first,
+    );
+    const connected = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "arrow",
+        connection: {
+          mode: "connect",
+        },
+      },
+      second,
+    );
+
+    expect(connected.objects).toHaveLength(3);
+    expect(connected.objects[2]).toMatchObject({
+      type: "arrow",
+      x: 260,
+      y: 310,
+      width: 440,
+      height: 0,
+    });
+  });
+
+  it("creates a pointed arrow from named source to target", () => {
+    const circle = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        position: {
+          region: "top",
+        },
+      },
+      emptyState(),
+    );
+    const rect = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+        position: {
+          region: "bottom",
+        },
+      },
+      circle,
+    );
+    const arrow = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "arrow",
+        connection: {
+          mode: "point-to",
+          from: "圆形",
+          to: "矩形",
+        },
+      },
+      rect,
+    );
+
+    expect(arrow.objects[2]).toMatchObject({
+      type: "arrow",
+      x: 480,
+      y: 160,
+      width: 0,
+      height: 300,
+    });
+  });
+
+  it("updates, moves, deletes, and clears objects", () => {
+    const created = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+      },
+      emptyState(),
+    );
+    const updated = executeDrawingCommand(
+      {
+        type: "update",
+        target: {
+          ref: "active",
+        },
+        patch: {
+          fill: "#16a34a",
+          scale: 1.2,
+        },
+      },
+      created,
+    );
+    const moved = executeDrawingCommand(
+      {
+        type: "move",
+        target: {
+          ref: "active",
+        },
+        direction: "right",
+        distance: 36,
+      },
+      updated,
+    );
+    const deleted = executeDrawingCommand(
+      {
+        type: "delete",
+        target: {
+          ref: "active",
+        },
+      },
+      moved,
+    );
+    const cleared = executeDrawingCommand({ type: "clear" }, created);
+
+    expect(updated.objects[0]).toMatchObject({
+      width: 153.6,
+      height: 100.8,
+      style: {
+        fill: "#16a34a",
+      },
+    });
+    expect(moved.objects[0].x).toBe(516);
+    expect(deleted.objects).toHaveLength(0);
+    expect(cleared.objects).toHaveLength(0);
+  });
+});
