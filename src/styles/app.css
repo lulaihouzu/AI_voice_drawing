@@ -174,27 +174,43 @@ button {
   font-weight: 700;
 }
 
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.voice-state {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
 
-.quick-actions button {
-  display: grid;
-  place-items: center;
-  min-height: 44px;
+.voice-pill,
+.voice-audio {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
   border: 1px solid #c9d4e0;
   border-radius: 8px;
+  padding: 0 10px;
   background: #ffffff;
   color: #334155;
-  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.quick-actions button:hover {
-  border-color: #0f766e;
+.voice-audio {
+  gap: 6px;
   color: #0f766e;
+}
+
+.voice-pill.status-listening {
+  border-color: #99f6e4;
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+.voice-pill.status-error,
+.voice-pill.status-unsupported {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
 }
 
 .transcript-box {

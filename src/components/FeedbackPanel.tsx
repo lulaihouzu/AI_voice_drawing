@@ -4,6 +4,9 @@ import { useDrawingStore } from "../state/store";
 export function FeedbackPanel() {
   const feedback = useDrawingStore((state) => state.feedback);
   const lastTranscript = useDrawingStore((state) => state.lastTranscript);
+  const lastInterimTranscript = useDrawingStore((state) => state.lastInterimTranscript);
+  const transcriptLabel = lastInterimTranscript ? "临时识别" : "识别文本";
+  const transcriptText = lastInterimTranscript || lastTranscript || "暂无";
 
   return (
     <section className="panel" aria-label="执行反馈">
@@ -13,8 +16,8 @@ export function FeedbackPanel() {
       </div>
 
       <div className="transcript-box">
-        <span>识别文本</span>
-        <strong>{lastTranscript || "暂无"}</strong>
+        <span>{transcriptLabel}</span>
+        <strong>{transcriptText}</strong>
       </div>
 
       <div className="feedback-list" aria-live="polite">
