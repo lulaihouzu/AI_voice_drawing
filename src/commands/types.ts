@@ -30,6 +30,9 @@ export type PositionSpec = {
 
 export type TargetSpec = {
   ref: "active" | "last-created";
+} | {
+  ref: "name";
+  name: string;
 };
 
 export type ShapePatch = {
@@ -57,6 +60,7 @@ export type DrawingCommand =
   | { type: "update"; target: TargetSpec; patch: ShapePatch }
   | { type: "move"; target: TargetSpec; direction: Direction; distance?: number }
   | { type: "delete"; target: TargetSpec }
+  | { type: "rename"; target: TargetSpec; name: string }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "clear" }
@@ -77,6 +81,7 @@ export type CanvasObject = {
   rotation?: number;
   style: ShapeStyle;
   text?: string;
+  name?: string;
   createdAt: number;
   updatedAt: number;
 };

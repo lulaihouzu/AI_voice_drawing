@@ -7,6 +7,7 @@ import { useDrawingStore } from "./state/store";
 export default function App() {
   const objects = useDrawingStore((state) => state.objects);
   const activeObjectId = useDrawingStore((state) => state.activeObjectId);
+  const activeObject = objects.find((object) => object.id === activeObjectId);
 
   return (
     <main className="app-shell">
@@ -18,7 +19,7 @@ export default function App() {
         </div>
         <div className="app-meta" aria-label="画布状态">
           <span>{objects.length} 个对象</span>
-          <span>{activeObjectId ? "已选中" : "未选中"}</span>
+          <span>{activeObject?.name ? `当前：${activeObject.name}` : activeObjectId ? "已选中" : "未选中"}</span>
         </div>
       </header>
 

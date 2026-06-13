@@ -105,6 +105,54 @@ describe("parseCommand", () => {
     });
   });
 
+  it("parses object rename and named target commands", () => {
+    const renameCommands = expectOk(parseCommand("把它命名为开始节点"));
+    const renameCurrentShapeCommands = expectOk(parseCommand("把这个圆命名为入口"));
+    const moveCommands = expectOk(parseCommand("移动开始节点向右"));
+    const colorCommands = expectOk(parseCommand("把开始节点改成绿色"));
+    const deleteCommands = expectOk(parseCommand("删除开始节点"));
+
+    expect(renameCommands[0]).toMatchObject({
+      type: "rename",
+      target: {
+        ref: "active",
+      },
+      name: "开始",
+    });
+    expect(renameCurrentShapeCommands[0]).toMatchObject({
+      type: "rename",
+      target: {
+        ref: "active",
+      },
+      name: "入口",
+    });
+    expect(moveCommands[0]).toMatchObject({
+      type: "move",
+      target: {
+        ref: "name",
+        name: "开始",
+      },
+      direction: "right",
+    });
+    expect(colorCommands[0]).toMatchObject({
+      type: "update",
+      target: {
+        ref: "name",
+        name: "开始",
+      },
+      patch: {
+        fill: "#16a34a",
+      },
+    });
+    expect(deleteCommands[0]).toMatchObject({
+      type: "delete",
+      target: {
+        ref: "name",
+        name: "开始",
+      },
+    });
+  });
+
   it("parses scale commands", () => {
     const enlargeCommands = expectOk(parseCommand("把它放大一点"));
     const shrinkCommands = expectOk(parseCommand("把它缩小一点"));

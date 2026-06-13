@@ -1,5 +1,6 @@
 import { CanvasEngine } from "../canvas/CanvasEngine";
-import type { CanvasObject, DrawingCommand } from "./types";
+import { normalizeObjectName } from "./objectNames";
+import type { CanvasObject, DrawingCommand, TargetSpec } from "./types";
 
 export type ExecutionState = {
   objects: CanvasObject[];
@@ -27,10 +28,10 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
   }
 
   if (command.type === "update") {
-    const targetId = state.activeObjectId;
+    const targetId = resolveTargetId(state, command.target);
 
     if (!targetId) {
-      return { ...state, changed: false, message: "没有可编辑的当前对象。" };
+      return { ...state, changed: false, message: getMissingTargetMessage(command.target, "编辑") };
     }
 
     return {
@@ -41,10 +42,10 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
   }
 
   if (command.type === "move") {
-    const targetId = state.activeObjectId;
+    const targetId = resolveTargetId(state, command.target);
 
     if (!targetId) {
-      return { ...state, changed: false, message: "没有可移动的当前对象。" };
+      return { ...state, changed: false, message: getMissingTargetMessage(command.target, "移动") };
     }
 
     return {
@@ -55,10 +56,10 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
   }
 
   if (command.type === "delete") {
-    const targetId = state.activeObjectId;
+    const targetId = resolveTargetId(state, command.target);
 
     if (!targetId) {
-      return { ...state, changed: false, message: "没有可删除的当前对象。" };
+      return { ...state, changed: false, message: getMissingTargetMessage(command.target, "删除") };
     }
 
     return {
@@ -66,6 +67,29 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
       activeObjectId: undefined,
       changed: true,
       message: "已删除图形。",
+    };
+  }
+
+  if (command.type === "rename") {
+    const targetId = resolveTargetId(state, command.target);
+    const name = normalizeObjectName(command.name);
+
+    if (!targetId) {
+      return { ...state, changed: false, message: getMissingTargetMessage(command.target, "命名") };
+    }
+
+    if (!name) {
+      return { ...state, changed: false, message: "请说明要使用的对象名称。" };
+    }
+
+    if (isNameUsedByOtherObject(state.objects, targetId, name)) {
+      return { ...state, changed: false, message: `名称“${name}”已被使用。` };
+    }
+
+    return {
+      ...canvasEngine.renameObject(state.objects, targetId, name),
+      changed: true,
+      message: `已将图形命名为“${name}”。`,
     };
   }
 
@@ -91,4 +115,32 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
     changed: false,
     message: "该命令由状态模块处理。",
   };
+}
+
+function resolveTargetId(state: ExecutionState, target: TargetSpec) {
+  if (target.ref === "active") {
+    return state.activeObjectId;
+  }
+
+  if (target.ref === "last-created") {
+    return state.activeObjectId;
+  }
+
+  if (target.ref === "name") {
+    return [...state.objects].reverse().find((object) => normalizeObjectName(object.name) === target.name)?.id;
+  }
+
+  return undefined;
+}
+
+function getMissingTargetMessage(target: TargetSpec, action: string) {
+  if (target.ref === "name") {
+    return `没有找到名为“${target.name}”的对象，无法${action}。`;
+  }
+
+  return `没有可${action}的当前对象。`;
+}
+
+function isNameUsedByOtherObject(objects: CanvasObject[], targetId: string, name: string) {
+  return objects.some((object) => object.id !== targetId && normalizeObjectName(object.name) === name);
 }

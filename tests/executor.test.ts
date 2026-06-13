@@ -147,6 +147,159 @@ describe("executeDrawingCommand", () => {
     });
   });
 
+  it("renames objects and resolves later commands by name", () => {
+    const created = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        position: {
+          region: "left",
+        },
+      },
+      emptyState(),
+    );
+    const renamed = executeDrawingCommand(
+      {
+        type: "rename",
+        target: {
+          ref: "active",
+        },
+        name: "开始",
+      },
+      created,
+    );
+    const moved = executeDrawingCommand(
+      {
+        type: "move",
+        target: {
+          ref: "name",
+          name: "开始",
+        },
+        direction: "right",
+        distance: 36,
+      },
+      renamed,
+    );
+    const updated = executeDrawingCommand(
+      {
+        type: "update",
+        target: {
+          ref: "name",
+          name: "开始",
+        },
+        patch: {
+          fill: "#16a34a",
+        },
+      },
+      moved,
+    );
+
+    expect(renamed).toMatchObject({
+      changed: true,
+      message: "已将图形命名为“开始”。",
+    });
+    expect(renamed.objects[0]).toMatchObject({
+      name: "开始",
+    });
+    expect(moved.objects[0].x).toBe(296);
+    expect(updated.objects[0].style.fill).toBe("#16a34a");
+    expect(updated.activeObjectId).toBe(updated.objects[0].id);
+  });
+
+  it("rejects duplicate object names", () => {
+    const first = executeDrawingCommand({ type: "create", shape: "circle" }, emptyState());
+    const firstNamed = executeDrawingCommand(
+      {
+        type: "rename",
+        target: {
+          ref: "active",
+        },
+        name: "开始",
+      },
+      first,
+    );
+    const second = executeDrawingCommand({ type: "create", shape: "rect" }, firstNamed);
+    const duplicate = executeDrawingCommand(
+      {
+        type: "rename",
+        target: {
+          ref: "active",
+        },
+        name: "开始",
+      },
+      second,
+    );
+
+    expect(duplicate).toMatchObject({
+      changed: false,
+      message: "名称“开始”已被使用。",
+    });
+    expect(duplicate.objects[1].name).toBeUndefined();
+  });
+
+  it("uses object names when creating arrows", () => {
+    const start = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        position: {
+          region: "top",
+        },
+      },
+      emptyState(),
+    );
+    const startNamed = executeDrawingCommand(
+      {
+        type: "rename",
+        target: {
+          ref: "active",
+        },
+        name: "开始",
+      },
+      start,
+    );
+    const end = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+        position: {
+          region: "bottom",
+        },
+      },
+      startNamed,
+    );
+    const endNamed = executeDrawingCommand(
+      {
+        type: "rename",
+        target: {
+          ref: "active",
+        },
+        name: "结束",
+      },
+      end,
+    );
+    const arrow = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "arrow",
+        connection: {
+          mode: "point-to",
+          from: "开始节点",
+          to: "结束节点",
+        },
+      },
+      endNamed,
+    );
+
+    expect(arrow.objects[2]).toMatchObject({
+      type: "arrow",
+      x: 480,
+      y: 160,
+      width: 0,
+      height: 300,
+    });
+  });
+
   it("updates, moves, deletes, and clears objects", () => {
     const created = executeDrawingCommand(
       {
