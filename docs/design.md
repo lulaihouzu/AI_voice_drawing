@@ -48,7 +48,7 @@
 | 图层面板 | 图层可视化会引入额外鼠标交互，MVP 暂时使用最近对象上下文 |
 | 云端保存 | 当前项目无后端服务，已先完成浏览器本地工程保存 |
 | 导出 PDF | PDF 需要分页、尺寸和字体策略，留作后续交付增强 |
-| 真实大模型语义解析 | 当前已建立 AI 适配器接口、mock provider 和 schema 校验，真实模型接入需等待服务调用与密钥管理能力 |
+| 真实大模型语义解析 | 当前已建立 AI 适配器接口、mock provider、schema 校验和 HTTP 服务 provider；真实模型调用仍需由后端代理承接密钥管理 |
 
 ## 3. 指令理解设计
 
@@ -165,6 +165,8 @@ type CanvasObject = {
 
 MVP 采用本地规则解析和前端内存状态执行，避免网络请求带来的不确定延迟。
 
+AI 解析服务仅作为规则链路外的拓展能力。当前 HTTP provider 默认设置 12 秒超时，并在服务不可用、返回非法 JSON 或命令 schema 校验失败时给出明确失败反馈，不会直接修改画布。
+
 预期响应：
 
 - 简单绘图、编辑、移动：语音识别完成后快速执行
@@ -183,6 +185,7 @@ MVP 采用本地规则解析和前端内存状态执行，避免网络请求带�
 - 画布执行：`tests/executor.test.ts`
 - 状态闭环：`tests/store.test.ts`
 - 导出序列化：`tests/export.test.ts`
+- AI provider 和 schema 校验：`tests/aiProvider.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`
 
 验证命令：
 
@@ -195,7 +198,7 @@ npm run build
 当前测试结果：
 
 - 安全审计：0 漏洞
-- 单元测试：6 个测试文件，61 个测试
+- 单元测试：7 个测试文件，66 个测试
 - 生产构建：通过
 
 ## 8. 原创与第三方边界
@@ -212,6 +215,7 @@ npm run build
 - JSON 工程文件与本地工程快照逻辑
 - AI 指令解析接口与 mock provider
 - AI 命令 schema allow-list 校验
+- HTTP AI provider、服务调用边界和失败反馈逻辑
 - 反馈和语音播报机制
 
 第三方依赖用途：
@@ -233,4 +237,4 @@ npm run build
 - PDF 导出
 - 云端项目保存与加载
 - 流程图、思维导图模板
-- AI 语义解析或自然语言布局优化
+- 多轮澄清、复杂指令拆解和自然语言布局优化

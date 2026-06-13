@@ -221,6 +221,8 @@ type AppState = {
 - `MockAiCommandProvider`：本地 deterministic mock，不请求网络，不需要 API key。
 - mock 场景覆盖用户登录流程图、三步流程图、强调当前图形。
 - `validateDrawingCommands`：对 AI 命令草案做 allow-list 校验、字段清洗和错误反馈。
+- `HttpAiCommandProvider`：通过 HTTP POST 调用后端代理或本地 AI 服务，自动处理超时、HTTP 错误、非法 JSON 和 schema 校验失败。
+- `createConfiguredAiCommandProvider`：从 `VITE_AI_COMMAND_ENDPOINT` 读取服务地址，避免把模型 API key 放进前端包。
 - AI 输出暂不接入自动执行链路，真实执行前必须先通过命令 schema 校验。
 
 ## 5. 指令执行机制
@@ -382,8 +384,10 @@ AI_voice_drawing/
     ai/
       index.ts
       types.ts
+      configuredProvider.ts
       mockCommandProvider.ts
       commandSchema.ts
+      httpCommandProvider.ts
     canvas/
       CanvasEngine.ts
       objectFactory.ts
@@ -399,6 +403,9 @@ AI_voice_drawing/
     executor.test.ts
     store.test.ts
     export.test.ts
+    aiProvider.test.ts
+    commandSchema.test.ts
+    httpAiProvider.test.ts
 ```
 
 ## 9. 当前实现方式
@@ -498,6 +505,7 @@ speechInput.onResult((text) => {
 - 测试图层顺序调整
 - 测试导出功能
 - 测试 AI mock provider 的命令计划和失败反馈
+- 测试 AI 命令 schema 校验和 HTTP AI provider 的服务调用、失败降级
 
 ### 9.8 AI 适配器
 
@@ -508,8 +516,10 @@ speechInput.onResult((text) => {
 - `AiCommandResult`：区分成功命令草案与失败反馈。
 - `MockAiCommandProvider`：测试和演示用 provider，不访问真实模型。
 - `validateDrawingCommands`：校验未知 JSON 是否为合法 `DrawingCommand[]`，并返回清洗后的命令数组。
+- `HttpAiCommandProvider`：向配置的 AI 解析服务发送 `{ text, context }`，并把服务响应转换为统一的 `AiCommandResult`。
+- `createConfiguredAiCommandProvider`：读取 `import.meta.env.VITE_AI_COMMAND_ENDPOINT` 创建 HTTP provider。
 
-当前阶段只生成并校验命令草案，不自动执行。后续真实模型接入也必须复用同一校验器，避免非法结构进入执行器。
+HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。当前阶段只生成并校验命令草案，不自动执行。后续真实模型接入也必须复用同一校验器，避免非法结构进入执行器。
 
 ## 10. 如何运行
 
@@ -555,6 +565,44 @@ npm run preview
 npm run test
 ```
 
+### 10.7 配置 AI 解析服务
+
+```bash
+VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
+```
+
+该地址应由后端代理或本地服务提供，建议返回以下 JSON 结构：
+
+```json
+{
+  "commands": [
+    {
+      "type": "create",
+      "shape": "circle",
+      "style": {
+        "fill": "#ef4444"
+      }
+    }
+  ],
+  "explanation": "生成一个红色圆形。",
+  "confidence": 0.8,
+  "requiresConfirmation": true
+}
+```
+
+如果服务无法生成命令，可返回：
+
+```json
+{
+  "ok": false,
+  "reason": "模型暂时不可用。",
+  "suggestions": ["稍后再试"],
+  "retryable": true
+}
+```
+
+前端收到响应后会先执行 JSON 解析、服务失败判断和 `validateDrawingCommands` 校验，校验失败时不会进入命令执行链路。
+
 ## 11. 浏览器兼容性
 
 MVP 依赖浏览器语音识别能力，建议优先使用 Chrome 或 Edge 进行演示。部分浏览器可能不支持 Web Speech API，或者需要 HTTPS 环境才能稳定使用麦克风。
@@ -596,9 +644,10 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 
 - 已增加 `AiCommandProvider` 接口和 `MockAiCommandProvider`。
 - 已增加 `validateDrawingCommands` 命令 schema 校验器。
+- 已增加 `HttpAiCommandProvider` 和 `VITE_AI_COMMAND_ENDPOINT` 配置入口，用于对接后端代理或本地 AI 服务。
 - AI 输出必须经过命令 schema 校验。
 - 测试环境默认使用 mock provider。
-- 真实模型调用应通过后端代理或环境变量注入密钥，不把 API key 打包进前端。
+- 真实模型调用应通过后端代理或本地服务注入密钥，不把 API key 打包进前端。
 - AI 解析失败时回退到规则解析反馈链路。
 
 ### 12.3 交付增强
