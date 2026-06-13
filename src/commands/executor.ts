@@ -104,10 +104,12 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
   }
 
   if (command.type === "export") {
+    const formatLabel = command.format.toUpperCase();
+
     return {
       ...state,
       changed: false,
-      message: state.objects.length > 0 ? "正在导出 PNG 图片。" : "画布为空，无法导出图片。",
+      message: state.objects.length > 0 ? `正在导出 ${formatLabel} 文件。` : `画布为空，无法导出 ${formatLabel} 文件。`,
     };
   }
 

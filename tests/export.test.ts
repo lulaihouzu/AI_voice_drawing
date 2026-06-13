@@ -46,13 +46,24 @@ describe("canvas export", () => {
   });
 
   it("creates an immutable png export request", () => {
-    const objects: CanvasObject[] = [{ ...baseObject, type: "rect", width: 128, height: 84 }];
+    const objects: CanvasObject[] = [{ ...baseObject, style: { ...baseObject.style }, type: "rect", width: 128, height: 84 }];
     const request = createCanvasExportRequest(objects);
 
     objects[0].style.stroke = "#000000";
 
     expect(request.format).toBe("png");
     expect(request.filename).toMatch(/^ai-voice-drawing-\d{8}-\d{6}\.png$/);
+    expect(request.objects[0].style.stroke).toBe("#111827");
+  });
+
+  it("creates an immutable svg export request", () => {
+    const objects: CanvasObject[] = [{ ...baseObject, style: { ...baseObject.style }, type: "rect", width: 128, height: 84 }];
+    const request = createCanvasExportRequest(objects, "svg");
+
+    objects[0].style.stroke = "#000000";
+
+    expect(request.format).toBe("svg");
+    expect(request.filename).toMatch(/^ai-voice-drawing-\d{8}-\d{6}\.svg$/);
     expect(request.objects[0].style.stroke).toBe("#111827");
   });
 });

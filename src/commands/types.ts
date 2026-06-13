@@ -73,7 +73,7 @@ export type DrawingCommand =
   | { type: "undo" }
   | { type: "redo" }
   | { type: "clear" }
-  | { type: "export"; format: "png" };
+  | { type: "export"; format: "png" | "svg" };
 
 export type ParseResult =
   | { ok: true; rawText: string; commands: DrawingCommand[] }

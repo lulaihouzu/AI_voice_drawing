@@ -38,7 +38,7 @@ MVP 推荐采用 Web 应用方式实现，便于演示、调试和跨平台运�
   -> CanvasEngine 更新画布对象
   -> StateManager 记录历史与当前对象
   -> FeedbackManager 给出操作反馈
-  -> ExportController 按需导出 PNG
+  -> ExportController 按需导出 PNG/SVG
 ```
 
 ## 4. 模块设计
@@ -125,7 +125,7 @@ type DrawingCommand =
   | { type: "undo" }
   | { type: "redo" }
   | { type: "clear" }
-  | { type: "export"; format: "png" };
+  | { type: "export"; format: "png" | "svg" };
 ```
 
 ### 4.5 CanvasEngine
@@ -331,7 +331,7 @@ undoStack 栈顶 -> 当前状态
 redoStack 栈顶 -> 当前状态
 ```
 
-后续可将状态保存到 localStorage 或导出为 JSON 工程文件。MVP 当前支持将画布对象序列化为 SVG，再通过浏览器 Canvas 转换并下载 PNG 图片。
+后续可将状态保存到 localStorage 或导出为 JSON 工程文件。当前支持将画布对象序列化为 SVG 后直接下载 SVG 文件，也支持通过浏览器 Canvas 转换并下载 PNG 图片。
 
 ## 8. 当前目录结构
 
@@ -400,6 +400,7 @@ npm install
 - `deleteObject`
 - `clearCanvas`
 - `exportPng`
+- `exportSvg`
 
 这些 API 不直接绑定鼠标或键盘操作，而是由语音解析后的结构化命令统一调用。
 
@@ -416,6 +417,7 @@ MVP 当前支持以下高频指令：
 - “重做”
 - “清空画布”
 - “导出为图片”
+- “导出为 SVG”
 
 每条语音文本都转换成 `DrawingCommand`。
 
@@ -446,6 +448,7 @@ speechInput.onResult((text) => {
 - 在界面展示最近识别文本
 - 在界面展示执行结果
 - 无法理解时展示建议指令
+- 使用 SVG 序列化直接导出 SVG
 - 使用 SVG 序列化和浏览器 Canvas API 导出 PNG
 
 ### 9.7 测试覆盖
@@ -517,7 +520,8 @@ MVP 依赖浏览器语音识别能力，建议优先使用 Chrome 或 Edge 进�
 
 - 已增加对象命名和按名称引用能力，支持更精确的语音编辑。
 - 已增加按位置、类型和尺寸定位对象的能力，例如左边圆形、右边圆形、最大矩形。
-- 增加 SVG 导出和 JSON 工程文件保存/加载。
+- 已增加 SVG 文件导出能力。
+- 后续增加 JSON 工程文件保存/加载。
 - 增加图层顺序调整和对象树，为复杂画布管理做准备。
 - 增加模板系统，例如流程图节点、判断节点和思维导图节点。
 

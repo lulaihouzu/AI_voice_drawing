@@ -5,7 +5,7 @@ export const EXPORT_CANVAS_HEIGHT = 620;
 
 export type CanvasExportRequest = {
   id: string;
-  format: "png";
+  format: "png" | "svg";
   filename: string;
   objects: CanvasObject[];
 };
@@ -14,11 +14,11 @@ export function serializeCanvas(objects: CanvasObject[]) {
   return JSON.stringify({ version: 1, objects }, null, 2);
 }
 
-export function createCanvasExportRequest(objects: CanvasObject[]): CanvasExportRequest {
+export function createCanvasExportRequest(objects: CanvasObject[], format: CanvasExportRequest["format"] = "png"): CanvasExportRequest {
   return {
     id: `export-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    format: "png",
-    filename: `ai-voice-drawing-${formatTimestamp(new Date())}.png`,
+    format,
+    filename: `ai-voice-drawing-${formatTimestamp(new Date())}.${format}`,
     objects: cloneCanvasObjects(objects),
   };
 }
@@ -69,6 +69,18 @@ export async function downloadCanvasAsPng(request: CanvasExportRequest) {
     } finally {
       URL.revokeObjectURL(pngUrl);
     }
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+}
+
+export function downloadCanvasAsSvg(request: CanvasExportRequest) {
+  const svg = canvasObjectsToSvg(request.objects);
+  const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    triggerDownload(svgUrl, request.filename);
   } finally {
     URL.revokeObjectURL(svgUrl);
   }
