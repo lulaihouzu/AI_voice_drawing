@@ -18,14 +18,14 @@ MVP 推荐采用 Web 应用方式实现，便于演示、调试和跨平台运�
 | 层级 | 推荐方案 | 说明 |
 | --- | --- | --- |
 | 前端框架 | React + TypeScript + Vite | 快速搭建交互式单页应用 |
-| 画布渲染 | Fabric.js 或 Konva.js | 管理图形对象、拖拽逻辑、导出图片 |
+| 画布渲染 | SVG | 渲染基础图形、文本、线条和箭头 |
 | 语音识别 | Web Speech API | 浏览器原生能力，适合 MVP 快速验证 |
-| 状态管理 | Zustand 或 React Context | 管理画布对象、当前对象、历史记录 |
-| 指令解析 | 规则解析优先，语义解析可插拔 | MVP 保证稳定，后续扩展 AI 解析 |
-| 样式 | CSS Modules 或普通 CSS | 控制界面布局和状态提示 |
-| 测试 | Vitest + Playwright | 单元测试指令解析，端到端测试核心流程 |
+| 状态管理 | Zustand | 管理画布对象、当前对象、历史记录、语音状态和导出请求 |
+| 指令解析 | 本地规则解析 | MVP 保证稳定、低延迟、可测试 |
+| 样式 | 普通 CSS | 控制界面布局和状态提示 |
+| 测试 | Vitest | 单元测试指令解析、执行、状态闭环和导出 |
 
-后续如果需要更强语音识别和语义理解能力，可以接入云端语音识别服务或大模型接口，但 MVP 应优先保证本地规则链路可控。
+后续如果需要更强语音识别和语义理解能力，可以接入云端语音识别服务或大模型接口，但 MVP 优先保证本地规则链路可控。
 
 ## 3. 总体流程
 
@@ -38,6 +38,7 @@ MVP 推荐采用 Web 应用方式实现，便于演示、调试和跨平台运�
   -> CanvasEngine 更新画布对象
   -> StateManager 记录历史与当前对象
   -> FeedbackManager 给出操作反馈
+  -> ExportController 按需导出 PNG
 ```
 
 ## 4. 模块设计
@@ -117,14 +118,14 @@ interface SemanticParser {
 
 ```ts
 type DrawingCommand =
-  | { type: "create"; shape: ShapeType; style?: ShapeStyle; position?: PositionSpec }
+  | { type: "create"; shape: ShapeType; style?: ShapeStyle; position?: PositionSpec; text?: string }
   | { type: "update"; target: TargetSpec; patch: ShapePatch }
   | { type: "move"; target: TargetSpec; direction: Direction; distance?: number }
   | { type: "delete"; target: TargetSpec }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "clear" }
-  | { type: "export"; format: "png" | "svg" | "json" };
+  | { type: "export"; format: "png" };
 ```
 
 ### 4.5 CanvasEngine
@@ -330,9 +331,9 @@ undoStack 栈顶 -> 当前状态
 redoStack 栈顶 -> 当前状态
 ```
 
-后续可将状态保存到 localStorage 或导出为 JSON 工程文件。
+后续可将状态保存到 localStorage 或导出为 JSON 工程文件。MVP 当前支持将画布对象序列化为 SVG，再通过浏览器 Canvas 转换并下载 PNG 图片。
 
-## 8. 目录结构建议
+## 8. 当前目录结构
 
 ```text
 AI_voice_drawing/
@@ -340,6 +341,7 @@ AI_voice_drawing/
   docs/
     product.md
     architecture.md
+    design.md
   package.json
   index.html
   src/
@@ -349,6 +351,7 @@ AI_voice_drawing/
       CanvasView.tsx
       VoicePanel.tsx
       FeedbackPanel.tsx
+      ExportController.tsx
     speech/
       SpeechInput.ts
     commands/
@@ -367,30 +370,25 @@ AI_voice_drawing/
   tests/
     parser.test.ts
     executor.test.ts
+    store.test.ts
+    export.test.ts
 ```
 
-## 9. 如何实现
+## 9. 当前实现方式
 
-### 9.1 第一步：搭建前端工程
+### 9.1 工程基础
 
-使用 Vite 创建 React + TypeScript 工程，并安装画布库和测试工具。
+当前项目已采用 Vite + React + TypeScript 搭建前端单页应用，并使用 Vitest 做单元测试。
 
 ```bash
-npm create vite@latest . -- --template react-ts
 npm install
-npm install fabric zustand
-npm install -D vitest playwright
 ```
 
-如果选择 Konva，则将 `fabric` 替换为：
+当前运行依赖为 React、React DOM、Zustand 和 lucide-react；画布渲染由项目内自研 SVG 渲染层完成，没有引入 Fabric、Konva 等第三方画布业务库。
 
-```bash
-npm install konva react-konva zustand
-```
+### 9.2 画布引擎
 
-### 9.2 第二步：实现画布引擎
-
-先实现不依赖语音的画布操作 API：
+画布操作 API 集中在 `src/canvas` 与 `src/commands/executor.ts` 中：
 
 - `createCircle`
 - `createRect`
@@ -403,11 +401,11 @@ npm install konva react-konva zustand
 - `clearCanvas`
 - `exportPng`
 
-这些 API 不直接绑定 UI，方便后续由语音命令调用。
+这些 API 不直接绑定鼠标或键盘操作，而是由语音解析后的结构化命令统一调用。
 
-### 9.3 第三步：实现规则指令解析
+### 9.3 规则指令解析
 
-从最小指令集开始：
+MVP 当前支持以下高频指令：
 
 - “画一个红色圆形”
 - “画一个蓝色矩形”
@@ -415,12 +413,13 @@ npm install konva react-konva zustand
 - “把它向右移动一点”
 - “删除它”
 - “撤销”
+- “重做”
 - “清空画布”
 - “导出为图片”
 
 每条语音文本都转换成 `DrawingCommand`。
 
-### 9.4 第四步：接入语音识别
+### 9.4 语音识别
 
 使用浏览器 `SpeechRecognition` 或 `webkitSpeechRecognition`：
 
@@ -429,7 +428,7 @@ npm install konva react-konva zustand
 - 获取最终识别结果
 - 将文本传给 CommandParser
 
-### 9.5 第五步：打通执行链路
+### 9.5 执行链路
 
 完整调用链：
 
@@ -442,24 +441,23 @@ speechInput.onResult((text) => {
 });
 ```
 
-### 9.6 第六步：完善反馈与导出
+### 9.6 反馈与导出
 
 - 在界面展示最近识别文本
 - 在界面展示执行结果
 - 无法理解时展示建议指令
-- 调用画布库导出 PNG
+- 使用 SVG 序列化和浏览器 Canvas API 导出 PNG
 
-### 9.7 第七步：补充测试
+### 9.7 测试覆盖
 
 - 测试中文指令解析
 - 测试上下文引用
 - 测试撤销重做
 - 测试导出功能
-- 使用 Playwright 验证核心演示流程
 
 ## 10. 如何运行
 
-当前仓库处于文档和方案阶段，应用代码尚未生成。完成前端工程搭建后，推荐运行方式如下。
+当前仓库已包含可运行的前端 MVP。推荐使用 Chrome 或 Edge 进行语音演示。
 
 ### 10.1 安装依赖
 
@@ -499,10 +497,7 @@ npm run preview
 
 ```bash
 npm run test
-npm run test:e2e
 ```
-
-具体脚本会在后续创建 `package.json` 时补充。
 
 ## 11. 浏览器兼容性
 
