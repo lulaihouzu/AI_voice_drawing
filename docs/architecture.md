@@ -206,6 +206,22 @@ type AppState = {
 - “请说明要修改哪个图形。”
 - “暂不支持这个指令，你可以试试说：画一个蓝色矩形。”
 
+### 4.8 AiCommandProvider
+
+职责：
+
+- 定义可替换的 AI 指令解析 provider 接口
+- 接收语音文本和当前画布上下文
+- 返回结构化 `DrawingCommand[]` 草案，而不是直接操作画布
+- 标记是否需要用户确认
+- 在无法生成命令时返回原因和建议
+
+当前实现：
+
+- `MockAiCommandProvider`：本地 deterministic mock，不请求网络，不需要 API key。
+- mock 场景覆盖用户登录流程图、三步流程图、强调当前图形。
+- mock 输出暂不接入自动执行链路，下一步会先增加命令 schema 校验。
+
 ## 5. 指令执行机制
 
 ### 5.1 单步指令
@@ -362,6 +378,10 @@ AI_voice_drawing/
       normalizer.ts
       executor.ts
       types.ts
+    ai/
+      index.ts
+      types.ts
+      mockCommandProvider.ts
     canvas/
       CanvasEngine.ts
       objectFactory.ts
@@ -475,6 +495,18 @@ speechInput.onResult((text) => {
 - 测试撤销重做
 - 测试图层顺序调整
 - 测试导出功能
+- 测试 AI mock provider 的命令计划和失败反馈
+
+### 9.8 AI 适配器
+
+当前 AI 适配器位于 `src/ai`：
+
+- `AiCommandProvider`：统一 provider 接口。
+- `AiCommandContext`：传递画布对象、当前对象和最近对象等上下文。
+- `AiCommandResult`：区分成功命令草案与失败反馈。
+- `MockAiCommandProvider`：测试和演示用 provider，不访问真实模型。
+
+当前阶段只生成命令草案，不自动执行。真实执行前必须先经过后续命令 schema 校验模块。
 
 ## 10. 如何运行
 
@@ -559,6 +591,7 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 
 关键约束：
 
+- 已增加 `AiCommandProvider` 接口和 `MockAiCommandProvider`。
 - AI 输出必须经过命令 schema 校验。
 - 测试环境默认使用 mock provider。
 - 真实模型调用应通过后端代理或环境变量注入密钥，不把 API key 打包进前端。
