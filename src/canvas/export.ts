@@ -1,25 +1,32 @@
 import type { CanvasObject } from "../commands/types";
+import { cloneCanvasObjects, createCanvasProject, serializeCanvasProject } from "./project";
 
 export const EXPORT_CANVAS_WIDTH = 960;
 export const EXPORT_CANVAS_HEIGHT = 620;
 
 export type CanvasExportRequest = {
   id: string;
-  format: "png" | "svg";
+  format: "png" | "svg" | "json";
   filename: string;
   objects: CanvasObject[];
+  activeObjectId?: string;
 };
 
-export function serializeCanvas(objects: CanvasObject[]) {
-  return JSON.stringify({ version: 1, objects }, null, 2);
+export function serializeCanvas(objects: CanvasObject[], activeObjectId?: string) {
+  return serializeCanvasProject(createCanvasProject(objects, activeObjectId));
 }
 
-export function createCanvasExportRequest(objects: CanvasObject[], format: CanvasExportRequest["format"] = "png"): CanvasExportRequest {
+export function createCanvasExportRequest(
+  objects: CanvasObject[],
+  format: CanvasExportRequest["format"] = "png",
+  activeObjectId?: string,
+): CanvasExportRequest {
   return {
     id: `export-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     format,
     filename: `ai-voice-drawing-${formatTimestamp(new Date())}.${format}`,
     objects: cloneCanvasObjects(objects),
+    activeObjectId,
   };
 }
 
@@ -86,6 +93,18 @@ export function downloadCanvasAsSvg(request: CanvasExportRequest) {
   }
 }
 
+export function downloadCanvasAsJson(request: CanvasExportRequest) {
+  const project = createCanvasProject(request.objects, request.activeObjectId);
+  const jsonBlob = new Blob([serializeCanvasProject(project)], { type: "application/json;charset=utf-8" });
+  const jsonUrl = URL.createObjectURL(jsonBlob);
+
+  try {
+    triggerDownload(jsonUrl, request.filename);
+  } finally {
+    URL.revokeObjectURL(jsonUrl);
+  }
+}
+
 function renderSvgObject(object: CanvasObject) {
   const stroke = object.style.stroke ?? "#1f2937";
   const strokeWidth = object.style.strokeWidth ?? 2;
@@ -141,15 +160,6 @@ function triggerDownload(url: string, filename: string) {
   document.body.append(link);
   link.click();
   link.remove();
-}
-
-function cloneCanvasObjects(objects: CanvasObject[]) {
-  return objects.map((object) => ({
-    ...object,
-    style: {
-      ...object.style,
-    },
-  }));
 }
 
 function escapeXml(value: string | number) {

@@ -11,7 +11,7 @@ import type {
 } from "./types";
 import { isActiveReference, normalizeObjectName } from "./objectNames";
 
-const suggestions = ["画一个红色圆形", "把它命名为开始", "移动开始节点向右", "导出为 SVG", "导出为图片"];
+const suggestions = ["画一个红色圆形", "把它命名为开始", "保存工程", "加载工程", "导出为 JSON"];
 
 const colorMap: Array<[string, string]> = [
   ["红色", "#ef4444"],
@@ -100,6 +100,10 @@ function parseSingleClause(text: string, rawText: string): ParseResult {
     return ok(rawText, [{ type: "undo" }]);
   }
 
+  if (isProjectLoadLike(text)) {
+    return ok(rawText, [{ type: "project", action: "load" }]);
+  }
+
   if (text.includes("重做") || text.includes("恢复") || text.includes("再做一次")) {
     return ok(rawText, [{ type: "redo" }]);
   }
@@ -110,6 +114,10 @@ function parseSingleClause(text: string, rawText: string): ParseResult {
 
   if (isExportLike(text)) {
     return ok(rawText, [{ type: "export", format: findExportFormat(text) }]);
+  }
+
+  if (isProjectSaveLike(text)) {
+    return ok(rawText, [{ type: "project", action: "save" }]);
   }
 
   const renameName = extractRenameName(text);
@@ -189,16 +197,30 @@ function isExportLike(text: string) {
     text.includes("保存为图片") ||
     text.includes("下载图片") ||
     ((text.includes("保存") || text.includes("下载")) && /svg/i.test(text)) ||
+    ((text.includes("保存") || text.includes("下载")) && /json/i.test(text)) ||
+    ((text.includes("导出") || text.includes("下载")) && (text.includes("工程") || text.includes("项目"))) ||
     text.includes("矢量图")
   );
 }
 
-function findExportFormat(text: string): "png" | "svg" {
+function findExportFormat(text: string): "png" | "svg" | "json" {
+  if (/json/i.test(text) || ((text.includes("工程") || text.includes("项目")) && !text.includes("图片"))) {
+    return "json";
+  }
+
   if (/svg/i.test(text) || text.includes("矢量图")) {
     return "svg";
   }
 
   return "png";
+}
+
+function isProjectSaveLike(text: string) {
+  return (text.includes("保存工程") || text.includes("保存项目") || text.includes("保存画布")) && !text.includes("为");
+}
+
+function isProjectLoadLike(text: string) {
+  return text.includes("加载工程") || text.includes("加载项目") || text.includes("恢复工程") || text.includes("恢复项目") || text.includes("打开工程") || text.includes("打开项目");
 }
 
 function extractRenameName(text: string) {

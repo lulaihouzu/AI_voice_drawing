@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { downloadCanvasAsPng, downloadCanvasAsSvg } from "../canvas/export";
+import { downloadCanvasAsJson, downloadCanvasAsPng, downloadCanvasAsSvg } from "../canvas/export";
 import { useDrawingStore } from "../state/store";
 
 export function ExportController() {
@@ -19,6 +19,11 @@ export function ExportController() {
       .then(() => {
         if (pendingExport.format === "svg") {
           downloadCanvasAsSvg(pendingExport);
+          return;
+        }
+
+        if (pendingExport.format === "json") {
+          downloadCanvasAsJson(pendingExport);
           return;
         }
 

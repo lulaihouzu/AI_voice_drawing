@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { clearProjectSnapshot } from "../src/canvas/projectStorage";
 import { useDrawingStore } from "../src/state/store";
 
 function resetStore() {
+  clearProjectSnapshot();
   useDrawingStore.setState({
     objects: [],
     activeObjectId: undefined,
@@ -227,6 +229,89 @@ describe("useDrawingStore command loop", () => {
       ],
     });
     expect(state.pendingExport?.filename).toMatch(/^ai-voice-drawing-\d{8}-\d{6}\.svg$/);
+  });
+
+  it("creates a json export request for non-empty canvas", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画一个蓝色矩形");
+    const activeObjectId = useDrawingStore.getState().activeObjectId;
+    const result = useDrawingStore.getState().runCommandText("导出为 JSON");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      exportRequested: true,
+      message: "正在导出 JSON 文件。",
+    });
+    expect(state.pendingExport).toMatchObject({
+      format: "json",
+      activeObjectId,
+      objects: [
+        {
+          type: "rect",
+        },
+      ],
+    });
+    expect(state.pendingExport?.filename).toMatch(/^ai-voice-drawing-\d{8}-\d{6}\.json$/);
+  });
+
+  it("saves and loads project snapshots through voice commands", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画一个红色圆形");
+    store.runCommandText("把它命名为开始节点");
+    const savedObjectId = useDrawingStore.getState().objects[0].id;
+    const saveResult = useDrawingStore.getState().runCommandText("保存工程");
+
+    useDrawingStore.getState().runCommandText("清空画布");
+    const loadResult = useDrawingStore.getState().runCommandText("加载工程");
+    const state = useDrawingStore.getState();
+
+    expect(saveResult).toMatchObject({
+      ok: true,
+      changed: false,
+      message: "已保存工程。",
+      level: "success",
+    });
+    expect(loadResult).toMatchObject({
+      ok: true,
+      changed: true,
+      message: "已加载工程。",
+      level: "success",
+    });
+    expect(state.activeObjectId).toBe(savedObjectId);
+    expect(state.objects).toHaveLength(1);
+    expect(state.objects[0]).toMatchObject({
+      id: savedObjectId,
+      type: "circle",
+      name: "开始",
+    });
+  });
+
+  it("reports unavailable project snapshots without changing canvas", () => {
+    const result = useDrawingStore.getState().runCommandText("加载工程");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      message: "没有可加载的工程。",
+      level: "info",
+    });
+    expect(state.objects).toHaveLength(0);
+  });
+
+  it("does not save empty project snapshots", () => {
+    const result = useDrawingStore.getState().runCommandText("保存工程");
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      message: "画布为空，无法保存工程。",
+      level: "info",
+    });
   });
 
   it("clears pending export after completion feedback", () => {

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { StateCreator } from "zustand";
 import { createCanvasExportRequest, type CanvasExportRequest } from "../canvas/export";
+import { loadProjectSnapshot, saveProjectSnapshot } from "../canvas/projectStorage";
 import { executeDrawingCommand } from "../commands/executor";
 import { normalizeCommands } from "../commands/normalizer";
 import { parseCommand } from "../commands/parser";
@@ -87,8 +88,37 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
     let changed = false;
     let message = "指令已执行。";
     let pendingExport: CanvasExportRequest | undefined;
+    let feedbackLevel: FeedbackLevel = "info";
 
     commands.forEach((command) => {
+      if (command.type === "project") {
+        if (command.action === "save") {
+          if (nextObjects.length === 0) {
+            message = "画布为空，无法保存工程。";
+            return;
+          }
+
+          saveProjectSnapshot(nextObjects, nextActiveObjectId);
+          message = "已保存工程。";
+          feedbackLevel = "success";
+          return;
+        }
+
+        const project = loadProjectSnapshot();
+
+        if (!project) {
+          message = "没有可加载的工程。";
+          return;
+        }
+
+        nextObjects = project.objects;
+        nextActiveObjectId = project.activeObjectId;
+        changed = true;
+        message = "已加载工程。";
+        feedbackLevel = "success";
+        return;
+      }
+
       const result = executeDrawingCommand(command, {
         objects: nextObjects,
         activeObjectId: nextActiveObjectId,
@@ -100,13 +130,13 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       message = result.message;
 
       if (command.type === "export" && nextObjects.length > 0) {
-        pendingExport = createCanvasExportRequest(nextObjects, command.format);
+        pendingExport = createCanvasExportRequest(nextObjects, command.format, nextActiveObjectId);
       }
     });
 
     const feedbackMessage =
       changed && commands.length > 1 && !pendingExport ? `已执行 ${commands.length} 个操作。` : message;
-    const feedbackLevel: FeedbackLevel = changed ? "success" : "info";
+    feedbackLevel = changed ? "success" : feedbackLevel;
 
     set((state) => ({
       objects: nextObjects,

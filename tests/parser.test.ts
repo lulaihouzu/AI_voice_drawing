@@ -232,6 +232,11 @@ describe("parseCommand", () => {
     expect(expectOk(parseCommand("导出为 SVG"))[0]).toMatchObject({ type: "export", format: "svg" });
     expect(expectOk(parseCommand("下载 SVG"))[0]).toMatchObject({ type: "export", format: "svg" });
     expect(expectOk(parseCommand("保存为矢量图"))[0]).toMatchObject({ type: "export", format: "svg" });
+    expect(expectOk(parseCommand("导出为 JSON"))[0]).toMatchObject({ type: "export", format: "json" });
+    expect(expectOk(parseCommand("导出工程文件"))[0]).toMatchObject({ type: "export", format: "json" });
+    expect(expectOk(parseCommand("保存工程"))[0]).toMatchObject({ type: "project", action: "save" });
+    expect(expectOk(parseCommand("加载工程"))[0]).toMatchObject({ type: "project", action: "load" });
+    expect(expectOk(parseCommand("恢复工程"))[0]).toMatchObject({ type: "project", action: "load" });
   });
 
   it("parses a simple compound command", () => {
