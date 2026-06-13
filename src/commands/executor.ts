@@ -1,5 +1,6 @@
 import { CanvasEngine } from "../canvas/CanvasEngine";
 import { normalizeObjectName } from "./objectNames";
+import { describeTargetQuery, resolveTargetQuery } from "./targetQueries";
 import type { CanvasObject, DrawingCommand, TargetSpec } from "./types";
 
 export type ExecutionState = {
@@ -130,12 +131,20 @@ function resolveTargetId(state: ExecutionState, target: TargetSpec) {
     return [...state.objects].reverse().find((object) => normalizeObjectName(object.name) === target.name)?.id;
   }
 
+  if (target.ref === "query") {
+    return resolveTargetQuery(state.objects, target.query)?.id;
+  }
+
   return undefined;
 }
 
 function getMissingTargetMessage(target: TargetSpec, action: string) {
   if (target.ref === "name") {
     return `没有找到名为“${target.name}”的对象，无法${action}。`;
+  }
+
+  if (target.ref === "query") {
+    return `没有找到符合“${describeTargetQuery(target.query)}”的对象，无法${action}。`;
   }
 
   return `没有可${action}的当前对象。`;

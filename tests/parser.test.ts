@@ -153,6 +153,47 @@ describe("parseCommand", () => {
     });
   });
 
+  it("parses positional and size based target commands", () => {
+    const colorCommands = expectOk(parseCommand("把左边那个圆改成绿色"));
+    const moveCommands = expectOk(parseCommand("移动最大的矩形向右"));
+    const deleteCommands = expectOk(parseCommand("删除右边的圆"));
+
+    expect(colorCommands[0]).toMatchObject({
+      type: "update",
+      target: {
+        ref: "query",
+        query: {
+          region: "left",
+          shape: "circle",
+        },
+      },
+      patch: {
+        fill: "#16a34a",
+      },
+    });
+    expect(moveCommands[0]).toMatchObject({
+      type: "move",
+      target: {
+        ref: "query",
+        query: {
+          sizeRank: "largest",
+          shape: "rect",
+        },
+      },
+      direction: "right",
+    });
+    expect(deleteCommands[0]).toMatchObject({
+      type: "delete",
+      target: {
+        ref: "query",
+        query: {
+          region: "right",
+          shape: "circle",
+        },
+      },
+    });
+  });
+
   it("parses scale commands", () => {
     const enlargeCommands = expectOk(parseCommand("把它放大一点"));
     const shrinkCommands = expectOk(parseCommand("把它缩小一点"));

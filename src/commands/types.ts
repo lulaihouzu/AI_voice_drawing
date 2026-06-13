@@ -33,6 +33,15 @@ export type TargetSpec = {
 } | {
   ref: "name";
   name: string;
+} | {
+  ref: "query";
+  query: TargetQuery;
+};
+
+export type TargetQuery = {
+  shape?: ShapeType;
+  region?: PositionRegion;
+  sizeRank?: "largest" | "smallest";
 };
 
 export type ShapePatch = {

@@ -6,6 +6,7 @@ import type {
   PositionRegion,
   ShapeSize,
   ShapeType,
+  TargetQuery,
   TargetSpec,
 } from "./types";
 import { isActiveReference, normalizeObjectName } from "./objectNames";
@@ -217,7 +218,7 @@ function extractMoveTarget(text: string): TargetSpec {
   for (const pattern of patterns) {
     const target = toTarget(text.match(pattern)?.[1]);
 
-    if (target.ref === "name") {
+    if (target.ref === "name" || target.ref === "query") {
       return target;
     }
   }
@@ -230,9 +231,48 @@ function toTarget(value?: string): TargetSpec {
     return { ref: "active" };
   }
 
+  const query = extractTargetQuery(value);
+
+  if (query) {
+    return { ref: "query", query };
+  }
+
   const name = normalizeObjectName(value);
 
   return name ? { ref: "name", name } : { ref: "active" };
+}
+
+function extractTargetQuery(value?: string): TargetQuery | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const phrase = value.replace(/[的那个这]/g, "");
+  const shape = findShape(phrase);
+  const region = findPosition(phrase);
+  const sizeRank = findTargetSizeRank(phrase);
+
+  if (!shape && !region && !sizeRank) {
+    return undefined;
+  }
+
+  return {
+    shape,
+    region,
+    sizeRank,
+  };
+}
+
+function findTargetSizeRank(text: string): TargetQuery["sizeRank"] | undefined {
+  if (text.includes("最大") || text.includes("最大的")) {
+    return "largest";
+  }
+
+  if (text.includes("最小") || text.includes("最小的")) {
+    return "smallest";
+  }
+
+  return undefined;
 }
 
 function findShape(text: string) {

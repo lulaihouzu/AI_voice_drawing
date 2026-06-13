@@ -147,6 +147,27 @@ describe("useDrawingStore command loop", () => {
     expect(state.objects[0].x).toBe(480);
   });
 
+  it("runs position based object targeting through the voice command loop", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画两个圆");
+    const result = useDrawingStore.getState().runCommandText("把左边那个圆改成绿色");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: true,
+      message: "已更新图形。",
+    });
+    expect(state.objects[0]).toMatchObject({
+      x: 260,
+      style: {
+        fill: "#16a34a",
+      },
+    });
+    expect(state.objects[1].style.fill).toBeUndefined();
+  });
+
   it("creates an export request for non-empty canvas", () => {
     const store = useDrawingStore.getState();
 
