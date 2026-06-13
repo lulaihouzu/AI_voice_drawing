@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHttpAiCommandProvider } from "../src/ai";
+import type { AiCommandResult } from "../src/ai";
 
 describe("HttpAiCommandProvider", () => {
   it("posts text and context to the configured endpoint", async () => {
@@ -72,9 +73,7 @@ describe("HttpAiCommandProvider", () => {
       requiresConfirmation: false,
     });
 
-    if (!result.ok) {
-      throw new Error(result.reason);
-    }
+    expectCommandSuccess(result);
 
     expect(result.commands).toEqual([
       {
@@ -92,6 +91,32 @@ describe("HttpAiCommandProvider", () => {
         connection: undefined,
       },
     ]);
+  });
+
+  it("parses insight responses from the configured endpoint", async () => {
+    const provider = createHttpAiCommandProvider({
+      endpoint: "/api/ai/commands",
+      fetchImpl: async () =>
+        jsonResponse({
+          kind: "insight",
+          message: "当前画布共有 2 个对象，建议补充箭头连接。",
+          explanation: "服务生成了画布优化建议。",
+          confidence: 0.81,
+        }),
+      providerId: "test-http-provider",
+    });
+    const result = await provider.parseCommand("帮我优化这个流程图", {
+      objects: [],
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      kind: "insight",
+      providerId: "test-http-provider",
+      message: "当前画布共有 2 个对象，建议补充箭头连接。",
+      explanation: "服务生成了画布优化建议。",
+      confidence: 0.81,
+    });
   });
 
   it("reports missing endpoint configuration", async () => {
@@ -190,4 +215,14 @@ function jsonResponse(payload: unknown) {
       "Content-Type": "application/json",
     },
   });
+}
+
+function expectCommandSuccess(result: AiCommandResult): asserts result is Extract<AiCommandResult, { ok: true; kind: "commands" }> {
+  if (!result.ok) {
+    throw new Error(result.reason);
+  }
+
+  if (result.kind !== "commands") {
+    throw new Error("Expected a command result.");
+  }
 }

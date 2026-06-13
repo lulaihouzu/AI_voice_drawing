@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMockAiCommandProvider } from "../src/ai";
-import type { AiCommandContext } from "../src/ai";
+import type { AiCommandContext, AiCommandResult } from "../src/ai";
 
 const emptyContext: AiCommandContext = {
   objects: [],
@@ -17,9 +17,7 @@ describe("MockAiCommandProvider", () => {
       requiresConfirmation: true,
     });
 
-    if (!result.ok) {
-      throw new Error(result.reason);
-    }
+    expectCommandSuccess(result);
 
     expect(result.commands).toHaveLength(5);
     expect(result.commands[0]).toMatchObject({
@@ -49,9 +47,7 @@ describe("MockAiCommandProvider", () => {
 
     expect(result.ok).toBe(true);
 
-    if (!result.ok) {
-      throw new Error(result.reason);
-    }
+    expectCommandSuccess(result);
 
     expect(result.explanation).toContain("三步流程图");
     expect(result.commands).toHaveLength(5);
@@ -68,9 +64,7 @@ describe("MockAiCommandProvider", () => {
 
     expect(result.ok).toBe(true);
 
-    if (!result.ok) {
-      throw new Error(result.reason);
-    }
+    expectCommandSuccess(result);
 
     expect(result.explanation).toContain("订单支付流程图");
     expect(result.commands).toHaveLength(7);
@@ -95,9 +89,7 @@ describe("MockAiCommandProvider", () => {
 
     expect(result.ok).toBe(true);
 
-    if (!result.ok) {
-      throw new Error(result.reason);
-    }
+    expectCommandSuccess(result);
 
     expect(result.commands).toEqual([
       {
@@ -131,6 +123,75 @@ describe("MockAiCommandProvider", () => {
     });
   });
 
+  it("summarizes the current canvas as an AI insight", async () => {
+    const provider = createMockAiCommandProvider();
+    const result = await provider.parseCommand("现在画布里有什么", {
+      objects: [
+        {
+          id: "object-1",
+          type: "text",
+          text: "开始",
+          x: 260,
+          y: 310,
+          style: {},
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          id: "object-2",
+          type: "arrow",
+          x: 480,
+          y: 310,
+          style: {},
+          createdAt: 2,
+          updatedAt: 2,
+        },
+      ],
+      activeObjectId: "object-1",
+    });
+
+    expect(result.ok).toBe(true);
+    expectInsightSuccess(result);
+    expect(result.message).toContain("当前画布共有 2 个对象");
+    expect(result.message).toContain("1 个文本");
+    expect(result.message).toContain("当前选中的是“开始”文本");
+  });
+
+  it("returns canvas optimization advice as an AI insight", async () => {
+    const provider = createMockAiCommandProvider();
+    const result = await provider.parseCommand("帮我优化这个流程图", {
+      objects: [
+        {
+          id: "object-1",
+          type: "circle",
+          x: 260,
+          y: 310,
+          radius: 48,
+          style: {},
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          id: "object-2",
+          type: "rect",
+          x: 280,
+          y: 320,
+          width: 120,
+          height: 80,
+          style: {},
+          createdAt: 2,
+          updatedAt: 2,
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expectInsightSuccess(result);
+    expect(result.message).toContain("优化建议");
+    expect(result.message).toContain("拉开重叠对象的距离");
+    expect(result.message).toContain("增加箭头连接");
+  });
+
   it("returns suggestions for unsupported mock requests", async () => {
     const provider = createMockAiCommandProvider();
     const result = await provider.parseCommand("帮我生成一个很复杂的商业架构图", emptyContext);
@@ -147,5 +208,26 @@ describe("MockAiCommandProvider", () => {
 
     expect(result.suggestions).toContain("生成一个用户登录流程图");
     expect(result.suggestions).toContain("生成一个订单支付流程图");
+    expect(result.suggestions).toContain("现在画布里有什么");
   });
 });
+
+function expectCommandSuccess(result: AiCommandResult): asserts result is Extract<AiCommandResult, { ok: true; kind: "commands" }> {
+  if (!result.ok) {
+    throw new Error(result.reason);
+  }
+
+  if (result.kind !== "commands") {
+    throw new Error("Expected a command result.");
+  }
+}
+
+function expectInsightSuccess(result: AiCommandResult): asserts result is Extract<AiCommandResult, { ok: true; kind: "insight" }> {
+  if (!result.ok) {
+    throw new Error(result.reason);
+  }
+
+  if (result.kind !== "insight") {
+    throw new Error("Expected an insight result.");
+  }
+}

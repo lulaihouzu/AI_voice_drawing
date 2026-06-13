@@ -9,11 +9,21 @@ export type AiCommandContext = {
 
 export type AiCommandSuccess = {
   ok: true;
+  kind: "commands";
   providerId: string;
   commands: DrawingCommand[];
   explanation: string;
   confidence: number;
   requiresConfirmation: boolean;
+};
+
+export type AiInsightSuccess = {
+  ok: true;
+  kind: "insight";
+  providerId: string;
+  message: string;
+  explanation: string;
+  confidence: number;
 };
 
 export type AiCommandFailure = {
@@ -24,7 +34,7 @@ export type AiCommandFailure = {
   retryable: boolean;
 };
 
-export type AiCommandResult = AiCommandSuccess | AiCommandFailure;
+export type AiCommandResult = AiCommandSuccess | AiInsightSuccess | AiCommandFailure;
 
 export interface AiCommandProvider {
   readonly id: string;

@@ -10,7 +10,9 @@ export type HttpAiCommandProviderOptions = {
 };
 
 type AiServiceSuccessResponse = {
+  kind?: unknown;
   commands?: unknown;
+  message?: unknown;
   explanation?: unknown;
   confidence?: unknown;
   requiresConfirmation?: unknown;
@@ -101,6 +103,22 @@ export class HttpAiCommandProvider implements AiCommandProvider {
     }
 
     const response = payload as AiServiceSuccessResponse;
+
+    if (response.kind === "insight") {
+      if (typeof response.message !== "string" || !response.message.trim()) {
+        return this.failure("AI 洞察反馈缺少 message 字段。", ["请调整 AI 服务输出为合法洞察结构"], false);
+      }
+
+      return {
+        ok: true,
+        kind: "insight",
+        providerId: this.id,
+        message: response.message.trim(),
+        explanation: typeof response.explanation === "string" ? response.explanation : "AI 解析服务生成了画布洞察。",
+        confidence: readConfidence(response.confidence),
+      };
+    }
+
     const validation = validateDrawingCommands(response.commands);
 
     if (!validation.ok) {
@@ -113,6 +131,7 @@ export class HttpAiCommandProvider implements AiCommandProvider {
 
     return {
       ok: true,
+      kind: "commands",
       providerId: this.id,
       commands: validation.commands,
       explanation: typeof response.explanation === "string" ? response.explanation : "AI 解析服务生成了命令草案。",

@@ -187,7 +187,7 @@ AI 解析开启后，系统仍优先执行本地规则命令；只有规则无�
 - 画布执行：`tests/executor.test.ts`
 - 状态闭环：`tests/store.test.ts`
 - 导出序列化：`tests/export.test.ts`
-- AI provider、planner、图示生成、前端入口和 schema 校验：`tests/aiProvider.test.ts`、`tests/aiPlanner.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`、`tests/store.test.ts`
+- AI provider、planner、图示生成、画布洞察、前端入口和 schema 校验：`tests/aiProvider.test.ts`、`tests/aiPlanner.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`、`tests/store.test.ts`
 
 验证命令：
 
@@ -200,7 +200,7 @@ npm run build
 当前测试结果：
 
 - 安全审计：0 漏洞
-- 单元测试：8 个测试文件，77 个测试
+- 单元测试：8 个测试文件，82 个测试
 - 生产构建：通过
 
 ## 8. 原创与第三方边界
@@ -221,6 +221,7 @@ npm run build
 - AI 多轮澄清状态和复杂命令计划组织逻辑
 - AI 解析开关、语音确认执行和前端状态反馈逻辑
 - 一句话主题图示模板匹配与顺序节点/箭头计划生成逻辑
+- 画布对象摘要、优化建议和 AI 洞察反馈逻辑
 - 反馈和语音播报机制
 
 第三方依赖用途：

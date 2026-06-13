@@ -304,6 +304,24 @@ async function runAiPlanner(text: string, set: StoreSet, get: StoreGet): Promise
     };
   }
 
+  if (plan.status === "insight") {
+    set((current) => ({
+      aiStatus: current.aiEnabled ? "idle" : "off",
+      pendingAiClarification: undefined,
+      pendingAiPlan: undefined,
+      feedback: [createFeedback(plan.message, "info"), ...current.feedback].slice(0, 6),
+    }));
+
+    return {
+      ok: true,
+      changed: false,
+      message: plan.message,
+      level: "info",
+      commandCount: 0,
+      source: "ai",
+    };
+  }
+
   if (plan.requiresConfirmation) {
     const pendingPlan: PendingAiCommandPlan = {
       providerId: plan.providerId,
