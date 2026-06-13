@@ -16,10 +16,11 @@ const baseObject = {
 
 describe("canvas export", () => {
   it("serializes canvas objects as project data", () => {
-    const objects: CanvasObject[] = [{ ...baseObject, type: "circle", radius: 48 }];
+    const objects: CanvasObject[] = [{ ...baseObject, type: "circle", radius: 48, name: "开始" }];
 
     expect(serializeCanvas(objects)).toContain('"version": 1');
     expect(serializeCanvas(objects)).toContain('"type": "circle"');
+    expect(serializeCanvas(objects)).toContain('"name": "开始"');
   });
 
   it("renders circles, text, and arrows into svg markup", () => {

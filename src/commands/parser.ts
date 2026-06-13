@@ -6,9 +6,11 @@ import type {
   PositionRegion,
   ShapeSize,
   ShapeType,
+  TargetSpec,
 } from "./types";
+import { isActiveReference, normalizeObjectName } from "./objectNames";
 
-const suggestions = ["画一个红色圆形", "在右边画一个蓝色矩形", "把它向右移动一点", "撤销", "导出为图片"];
+const suggestions = ["画一个红色圆形", "把它命名为开始", "移动开始节点向右", "撤销", "导出为图片"];
 
 const colorMap: Array<[string, string]> = [
   ["红色", "#ef4444"],
@@ -109,28 +111,34 @@ function parseSingleClause(text: string, rawText: string): ParseResult {
     return ok(rawText, [{ type: "export", format: "png" }]);
   }
 
+  const renameName = extractRenameName(text);
+
+  if (renameName) {
+    return ok(rawText, [{ type: "rename", target: extractRenameTarget(text), name: renameName }]);
+  }
+
   if (text.includes("删除") || text.includes("删掉") || text.includes("移除") || text.includes("去掉")) {
-    return ok(rawText, [{ type: "delete", target: { ref: "active" } }]);
+    return ok(rawText, [{ type: "delete", target: extractDeleteTarget(text) }]);
   }
 
   const color = findColor(text);
 
   if ((text.includes("改成") || text.includes("变成")) && color) {
-    return ok(rawText, [{ type: "update", target: { ref: "active" }, patch: { fill: color } }]);
+    return ok(rawText, [{ type: "update", target: extractTargetBeforeAction(text, ["改成", "变成"]), patch: { fill: color } }]);
   }
 
   if (text.includes("放大") || text.includes("变大")) {
-    return ok(rawText, [{ type: "update", target: { ref: "active" }, patch: { scale: 1.2 } }]);
+    return ok(rawText, [{ type: "update", target: extractTargetBeforeAction(text, ["放大", "变大"]), patch: { scale: 1.2 } }]);
   }
 
   if (text.includes("缩小") || text.includes("变小")) {
-    return ok(rawText, [{ type: "update", target: { ref: "active" }, patch: { scale: 0.8 } }]);
+    return ok(rawText, [{ type: "update", target: extractTargetBeforeAction(text, ["缩小", "变小"]), patch: { scale: 0.8 } }]);
   }
 
   const direction = findDirection(text);
 
   if ((text.includes("移动") || text.startsWith("向")) && direction) {
-    return ok(rawText, [{ type: "move", target: { ref: "active" }, direction, distance: 36 }]);
+    return ok(rawText, [{ type: "move", target: extractMoveTarget(text), direction, distance: 36 }]);
   }
 
   const shape = findShape(text);
@@ -172,6 +180,59 @@ function findDirection(text: string) {
       text.includes(`${keyword}边移`) ||
       text.includes(`${keyword}一点`),
   )?.[1];
+}
+
+function extractRenameName(text: string) {
+  const match = text.match(/(?:命名为|取名为|改名为|叫做|名字叫|名为)(.+)$/);
+
+  return normalizeObjectName(match?.[1]);
+}
+
+function extractRenameTarget(text: string): TargetSpec {
+  const match = text.match(/^(?:把|将|给)?(.+?)(?:命名为|取名为|改名为|叫做|名字叫|名为)/);
+
+  return toTarget(match?.[1]);
+}
+
+function extractDeleteTarget(text: string): TargetSpec {
+  const match = text.match(/(?:删除|删掉|移除|去掉)(.+)$/);
+
+  return toTarget(match?.[1]);
+}
+
+function extractTargetBeforeAction(text: string, actions: string[]): TargetSpec {
+  const actionPattern = actions.join("|");
+  const match = text.match(new RegExp(`^(?:把|将)?(.+?)(?:${actionPattern})`));
+
+  return toTarget(match?.[1]);
+}
+
+function extractMoveTarget(text: string): TargetSpec {
+  const patterns = [
+    /^(?:把|将)?(.+?)(?:向|往)[上下左右](?:移动|挪动|挪|移)/,
+    /^(?:移动|挪动|挪)(.+?)(?:向|往)[上下左右]/,
+    /^(?:向|往)[上下左右](?:移动|挪动|挪|移)(.+?)(?:一点点|一点|一些|$)/,
+  ];
+
+  for (const pattern of patterns) {
+    const target = toTarget(text.match(pattern)?.[1]);
+
+    if (target.ref === "name") {
+      return target;
+    }
+  }
+
+  return { ref: "active" };
+}
+
+function toTarget(value?: string): TargetSpec {
+  if (isActiveReference(value)) {
+    return { ref: "active" };
+  }
+
+  const name = normalizeObjectName(value);
+
+  return name ? { ref: "name", name } : { ref: "active" };
 }
 
 function findShape(text: string) {

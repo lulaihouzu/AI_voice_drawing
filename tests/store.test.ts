@@ -106,6 +106,47 @@ describe("useDrawingStore command loop", () => {
     });
   });
 
+  it("renames the active object and moves it by spoken name", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画一个红色圆形");
+    const rename = useDrawingStore.getState().runCommandText("把它命名为开始节点");
+    const move = useDrawingStore.getState().runCommandText("移动开始节点向右");
+    const state = useDrawingStore.getState();
+
+    expect(rename).toMatchObject({
+      ok: true,
+      changed: true,
+      message: "已将图形命名为“开始”。",
+    });
+    expect(move).toMatchObject({
+      ok: true,
+      changed: true,
+      message: "已移动图形。",
+    });
+    expect(state.objects[0]).toMatchObject({
+      name: "开始",
+      x: 516,
+    });
+    expect(state.feedback[0]).toMatchObject({
+      level: "success",
+      message: "已移动图形。",
+    });
+  });
+
+  it("reports missing named targets without changing canvas", () => {
+    useDrawingStore.getState().runCommandText("画一个红色圆形");
+    const result = useDrawingStore.getState().runCommandText("移动开始节点向右");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      message: "没有找到名为“开始”的对象，无法移动。",
+    });
+    expect(state.objects[0].x).toBe(480);
+  });
+
   it("creates an export request for non-empty canvas", () => {
     const store = useDrawingStore.getState();
 

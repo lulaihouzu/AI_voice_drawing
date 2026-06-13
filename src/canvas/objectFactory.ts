@@ -1,4 +1,5 @@
 import type { CanvasObject, ConnectionSpec, DrawingCommand, PositionRegion, ShapeSize, ShapeType } from "../commands/types";
+import { normalizeObjectName } from "../commands/objectNames";
 
 const positionMap: Record<PositionRegion, { x: number; y: number }> = {
   center: { x: 480, y: 310 },
@@ -122,6 +123,15 @@ function resolveConnection(connection: ConnectionSpec | undefined, objects: Canv
 }
 
 function findObjectByReference(objects: CanvasObject[], reference: string) {
+  const expectedName = normalizeObjectName(reference);
+  const namedObject = expectedName
+    ? [...objects].reverse().find((object) => normalizeObjectName(object.name) === expectedName)
+    : undefined;
+
+  if (namedObject) {
+    return namedObject;
+  }
+
   const expectedType = inferShapeType(reference);
 
   if (!expectedType) {

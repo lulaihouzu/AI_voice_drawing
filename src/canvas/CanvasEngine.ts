@@ -46,6 +46,22 @@ export class CanvasEngine {
 
     return { objects: nextObjects, activeObjectId: targetId };
   }
+
+  renameObject(objects: CanvasObject[], targetId: string, name: string) {
+    const nextObjects = objects.map((object) => {
+      if (object.id !== targetId) {
+        return object;
+      }
+
+      return {
+        ...object,
+        name,
+        updatedAt: Date.now(),
+      };
+    });
+
+    return { objects: nextObjects, activeObjectId: targetId };
+  }
 }
 
 function toVector(direction: Direction, distance: number) {
