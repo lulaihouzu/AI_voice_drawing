@@ -14,11 +14,9 @@
 
 ## Demo 视频
 
-Demo 视频链接：待录制后补充
+MVP 本地验证通过后录制并补充链接。
 
-录制完成后，将可公开访问的视频链接填写到本小节。建议上传到 bilibili、云盘或其他可访问平台，确保评审可以直接打开播放。
-
-录制脚本：[`docs/demo-script.md`](docs/demo-script.md)
+当前状态：待录制。
 
 ## 当前 MVP 状态
 
@@ -224,7 +222,6 @@ Demo 视频链接：待录制后补充
 - 技术架构文档：[`docs/architecture.md`](docs/architecture.md)
 - 设计文档：[`docs/design.md`](docs/design.md)
 - AI 能力与拓展功能路线图：[`docs/ai-expansion-roadmap.md`](docs/ai-expansion-roadmap.md)
-- Demo 演示脚本：[`docs/demo-script.md`](docs/demo-script.md)
 - 必要的测试说明或演示材料
 
 ## 原创功能说明
@@ -260,7 +257,7 @@ Demo 视频链接：待录制后补充
 6. 完成导出、保存和错误反馈：已完成 PNG/SVG/JSON 导出、本地工程保存/加载与错误反馈
 7. 编写设计文档与演示说明：已完成
 8. 规划拓展功能与 AI 能力开发流程：已完成，当前按路线图分模块开发
-9. 录制 demo 视频并补充链接：README 已预留链接位置，待录制后填写
+9. 录制 demo 视频并补充链接：待完成
 
 ## 当前状态
 
@@ -288,7 +285,7 @@ Demo 视频链接：待录制后补充
 
 后续推荐优先顺序：
 
-1. 录制 demo 视频并补充 README 链接
+1. Demo 脚本和视频链接
 
 ## 本地运行
 
@@ -387,6 +384,5 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 - PR #18：实现 AI 解析开关与前端执行入口
 - PR #19：实现 AI 一句话生成图示模板
 - PR #20：实现 AI 画布总结与优化建议
-- PR #21：补充 Demo 演示脚本与视频链接占位
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。
