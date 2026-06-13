@@ -197,6 +197,7 @@ MVP 本地验证通过后录制并补充链接。
 - 产品文档：[`docs/product.md`](docs/product.md)
 - 技术架构文档：[`docs/architecture.md`](docs/architecture.md)
 - 设计文档：[`docs/design.md`](docs/design.md)
+- AI 能力与拓展功能路线图：[`docs/ai-expansion-roadmap.md`](docs/ai-expansion-roadmap.md)
 - 必要的测试说明或演示材料
 
 ## 原创功能说明
@@ -221,12 +222,27 @@ MVP 本地验证通过后录制并补充链接。
 4. 实现基础指令解析与执行：已完成
 5. 支持上下文编辑和复合指令拆解：已完成 MVP 范围
 6. 完成导出、保存和错误反馈：已完成 PNG 导出与错误反馈
-7. 编写设计文档与演示说明：当前模块补充中
-8. 录制 demo 视频并补充链接：待完成
+7. 编写设计文档与演示说明：已完成
+8. 规划拓展功能与 AI 能力开发流程：当前模块补充中
+9. 录制 demo 视频并补充链接：待完成
 
 ## 当前状态
 
-项目已完成 MVP 核心功能开发，当前阶段为 MVP 验证与交付文档整理。后续将在用户验证通过后继续开发可拓展功能。
+项目已完成 MVP 核心功能开发，当前阶段为拓展功能与 AI 能力规划。后续开发将按照 [`docs/ai-expansion-roadmap.md`](docs/ai-expansion-roadmap.md) 分模块推进。
+
+推荐优先顺序：
+
+1. 对象命名与对象定位
+2. SVG 导出
+3. JSON 工程保存与加载
+4. 图层顺序调整
+5. AI 适配器接口与 mock provider
+6. 命令 schema 校验
+7. AI 解析服务接入
+8. 多轮澄清和复杂指令拆解
+9. 一句话生成图示
+10. 画布总结与优化建议
+11. Demo 脚本和视频链接
 
 ## 本地运行
 
@@ -284,5 +300,6 @@ npm run test
 - PR #5：完善语音指令执行闭环
 - PR #6：实现 MVP PNG 导出模块
 - PR #7：同步 README 与 MVP 设计文档
+- PR #8：规划拓展功能与 AI 能力开发流程
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。
