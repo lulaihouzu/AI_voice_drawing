@@ -224,6 +224,7 @@ type AppState = {
 - `HttpAiCommandProvider`：通过 HTTP POST 调用后端代理或本地 AI 服务，自动处理超时、HTTP 错误、非法 JSON 和 schema 校验失败。
 - `createConfiguredAiCommandProvider`：从 `VITE_AI_COMMAND_ENDPOINT` 读取服务地址，避免把模型 API key 放进前端包。
 - `AiCommandPlanner`：封装 provider 调用结果，保存待澄清问题，用户补充后重新生成结构化命令计划。
+- `server/deepseekProxy.mjs`：本地 Node 代理服务，从 `DEEPSEEK_API_KEY` 读取密钥，调用 DeepSeek Chat Completions 接口并输出前端协议 JSON。
 - `runVoiceCommandText`：规则解析失败且 AI 解析开启时进入 planner；AI 命令计划需要语音确认后才执行。
 
 ## 5. 指令执行机制
@@ -513,6 +514,7 @@ speechInput.onResult((text) => {
 - 测试 AI 解析开关、语音开关指令、AI fallback 和确认执行入口
 - 测试一句话主题图示模板生成和 AI 语音确认执行闭环
 - 测试 AI 画布总结、优化建议和洞察反馈闭环
+- 测试 DeepSeek 代理请求体、模型 JSON 解析、配置失败和代理响应归一化
 
 ### 9.8 AI 适配器
 
@@ -526,10 +528,11 @@ speechInput.onResult((text) => {
 - `canvasInsights`：根据当前画布对象生成中文内容总结和优化建议。
 - `validateDrawingCommands`：校验未知 JSON 是否为合法 `DrawingCommand[]`，并返回清洗后的命令数组。
 - `HttpAiCommandProvider`：向配置的 AI 解析服务发送 `{ text, context }`，并把命令响应或 `kind: "insight"` 洞察响应转换为统一的 `AiCommandResult`。
+- `server/deepseekProxy.mjs`：真实模型代理，要求 DeepSeek 使用 JSON 对象返回命令、洞察或失败结果。
 - `createConfiguredAiCommandProvider`：读取 `import.meta.env.VITE_AI_COMMAND_ENDPOINT` 创建 HTTP provider。
 - `AiCommandPlanner`：把 provider 命令结果整理为可确认的命令计划；把洞察结果直接返回给反馈链路；遇到“没有当前对象”等可补充失败时生成 `AiClarification`，等待用户下一句语音补全。
 
-HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器；画布总结、优化建议等洞察结果只进入反馈面板和语音播报，不进入执行器。
+HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。当前已提供 DeepSeek 本地代理，使用 `DEEPSEEK_API_KEY` 调用 `https://api.deepseek.com/chat/completions`。未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器；画布总结、优化建议等洞察结果只进入反馈面板和语音播报，不进入执行器。
 
 ## 10. 如何运行
 
@@ -626,6 +629,42 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 
 洞察类响应不需要用户确认，也不会修改画布。
 
+### 10.8 使用 DeepSeek 真实模型代理
+
+先在一个终端启动本地代理：
+
+```bash
+export DEEPSEEK_API_KEY=你的_DeepSeek_API_Key
+npm run ai:deepseek
+```
+
+再在另一个终端启动已连接代理的前端：
+
+```bash
+npm run dev:ai
+```
+
+默认代理地址为：
+
+```text
+http://localhost:8787/api/ai/commands
+```
+
+可选环境变量：
+
+```bash
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+AI_PROXY_PORT=8787
+AI_PROXY_CORS_ORIGIN=*
+```
+
+代理服务会把前端传来的语音文本和画布上下文发给 DeepSeek，要求模型返回 JSON 对象。代理会归一化三类结果：
+
+- `commands`：可执行命令草案，前端还会再次执行 schema 校验。
+- `kind: "insight"`：画布总结或优化建议，只进入反馈播报。
+- `ok: false`：模型或代理无法生成结果时的失败反馈。
+
 ## 11. 浏览器兼容性
 
 MVP 依赖浏览器语音识别能力，建议优先使用 Chrome 或 Edge 进行演示。部分浏览器可能不支持 Web Speech API，或者需要 HTTPS 环境才能稳定使用麦克风。
@@ -668,6 +707,7 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 - 已增加 `AiCommandProvider` 接口和 `MockAiCommandProvider`。
 - 已增加 `validateDrawingCommands` 命令 schema 校验器。
 - 已增加 `HttpAiCommandProvider` 和 `VITE_AI_COMMAND_ENDPOINT` 配置入口，用于对接后端代理或本地 AI 服务。
+- 已增加 DeepSeek 本地代理服务，真实模型 API key 只保存在代理进程环境变量中。
 - 已增加 `AiCommandPlanner`，支持复杂命令计划和多轮澄清状态。
 - 已增加 AI 解析开关、语音开关指令、待确认计划和前端执行入口。
 - 已增加一句话生成图示基础模板，mock provider 可生成多类流程图命令计划。

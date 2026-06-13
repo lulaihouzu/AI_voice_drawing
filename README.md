@@ -58,6 +58,7 @@ MVP 本地验证通过后录制并补充链接。
 - AI 适配器接口：已提供 `AiCommandProvider` 协议和本地 mock provider，用于后续接入 AI 指令理解
 - AI 命令 schema 校验：已提供 `validateDrawingCommands`，对 AI 命令草案做 allow-list 校验和字段清洗
 - AI 解析服务接入：已提供 `HttpAiCommandProvider`，前端通过 `VITE_AI_COMMAND_ENDPOINT` 调用后端代理，返回命令仍必须通过 schema 校验
+- DeepSeek 真实模型代理：已提供 `server/deepseekProxy.mjs`，通过 `DEEPSEEK_API_KEY` 调用 DeepSeek Chat Completions 接口
 - AI 多轮澄清与命令计划：已提供 `AiCommandPlanner`，可在缺少目标对象时保存追问状态，并在用户补充后生成复杂命令计划
 - AI 解析开关与前端执行入口：侧栏可开启 AI 解析，规则无法覆盖的语音会进入 AI planner，并要求语音确认后执行
 - 一句话生成图示：mock provider 支持登录、注册、订单支付、客服工单、审批和项目发布等流程图模板
@@ -169,6 +170,10 @@ MVP 本地验证通过后录制并补充链接。
 | @vitejs/plugin-react | Vite React 支持 |
 | @types/react / @types/react-dom | React 类型定义 |
 
+服务端运行环境：
+
+- Node.js 原生 `http` 与 `fetch`：运行 DeepSeek 本地代理服务，不额外引入后端框架依赖
+
 浏览器原生能力：
 
 - Web Speech API：中文语音识别
@@ -238,6 +243,7 @@ MVP 本地验证通过后录制并补充链接。
 - AI 指令解析 provider 接口与 mock 命令计划生成逻辑
 - AI 命令 schema allow-list 校验逻辑
 - AI 解析服务 provider、后端代理调用边界和失败反馈逻辑
+- DeepSeek 本地代理、JSON 模式提示词和模型输出归一化逻辑
 - AI 多轮澄清状态和复杂命令计划组织逻辑
 - AI 解析开关、语音确认执行和 AI 状态反馈逻辑
 - 一句话主题图示模板匹配与顺序命令计划生成逻辑
@@ -275,8 +281,9 @@ MVP 本地验证通过后录制并补充链接。
 1. AI 适配器接口与 mock provider
 2. 命令 schema 校验
 3. AI 解析服务 provider
-4. 多轮澄清与复杂指令计划
-5. AI 解析开关与前端执行入口
+4. DeepSeek 真实模型代理
+5. 多轮澄清与复杂指令计划
+6. AI 解析开关与前端执行入口
 
 已完成的阶段三 AI 创作辅助能力：
 
@@ -313,13 +320,31 @@ npm run build
 npm run test
 ```
 
-AI 解析服务配置：
+DeepSeek 真实模型代理：
 
 ```bash
-VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
+export DEEPSEEK_API_KEY=你的_DeepSeek_API_Key
+npm run ai:deepseek
 ```
 
-`VITE_AI_COMMAND_ENDPOINT` 应指向后端代理或本地服务。前端不会保存或打包模型 API key；服务端返回可执行操作时必须是合法命令数组，前端会再次通过 `validateDrawingCommands` 校验后才允许进入后续执行链路。服务端也可以返回 `kind: "insight"` 的洞察消息，用于画布总结或优化建议，这类结果只进入反馈播报，不直接修改画布。
+另开一个终端启动已连接代理的前端：
+
+```bash
+npm run dev:ai
+```
+
+`npm run ai:deepseek` 默认启动 `http://localhost:8787/api/ai/commands`。`npm run dev:ai` 会把 `VITE_AI_COMMAND_ENDPOINT` 指向这个本地代理。前端不会保存或打包模型 API key；DeepSeek API Key 只放在代理服务的 `DEEPSEEK_API_KEY` 环境变量中。
+
+可选环境变量：
+
+```bash
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+AI_PROXY_PORT=8787
+AI_PROXY_CORS_ORIGIN=*
+```
+
+服务端返回可执行操作时必须是合法命令数组，前端会再次通过 `validateDrawingCommands` 校验后才允许进入后续执行链路。服务端也可以返回 `kind: "insight"` 的洞察消息，用于画布总结或优化建议，这类结果只进入反馈播报，不直接修改画布。
 
 未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端 AI 开关默认使用本地 mock provider，便于演示“生成用户登录流程图”“高亮这个图形”等 AI 命令计划；配置 endpoint 后会切换到 HTTP provider。
 
@@ -384,5 +409,6 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 - PR #18：实现 AI 解析开关与前端执行入口
 - PR #19：实现 AI 一句话生成图示模板
 - PR #20：实现 AI 画布总结与优化建议
+- PR #23：实现 DeepSeek 真实模型代理
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。
