@@ -113,6 +113,14 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
     };
   }
 
+  if (command.type === "project") {
+    return {
+      ...state,
+      changed: false,
+      message: "该命令由状态模块处理。",
+    };
+  }
+
   return {
     ...state,
     changed: false,

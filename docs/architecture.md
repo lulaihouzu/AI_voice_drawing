@@ -38,7 +38,7 @@ MVP 推荐采用 Web 应用方式实现，便于演示、调试和跨平台运�
   -> CanvasEngine 更新画布对象
   -> StateManager 记录历史与当前对象
   -> FeedbackManager 给出操作反馈
-  -> ExportController 按需导出 PNG/SVG
+  -> ExportController 按需导出 PNG/SVG/JSON
 ```
 
 ## 4. 模块设计
@@ -67,7 +67,7 @@ type SpeechResult = {
 
 职责：
 
-- 识别用户意图，例如创建、修改、移动、删除、导出
+- 识别用户意图，例如创建、修改、移动、删除、导出、保存、加载
 - 提取参数，例如图形类型、颜色、位置、大小、方向
 - 将自然语言转换为结构化命令
 - 对无法理解的指令返回错误原因
@@ -77,7 +77,7 @@ MVP 阶段采用规则解析：
 - 图形词典：圆形、圆、矩形、方框、线、直线、箭头、文字
 - 颜色词典：红色、蓝色、绿色、黄色、黑色、白色
 - 位置词典：中间、左边、右边、上方、下方、左上角、右下角
-- 动作词典：画、创建、改成、移动、删除、撤销、重做、清空、导出
+- 动作词典：画、创建、改成、移动、删除、撤销、重做、清空、导出、保存、加载
 
 后续可增加语义解析适配器：
 
@@ -125,7 +125,8 @@ type DrawingCommand =
   | { type: "undo" }
   | { type: "redo" }
   | { type: "clear" }
-  | { type: "export"; format: "png" | "svg" };
+  | { type: "export"; format: "png" | "svg" | "json" }
+  | { type: "project"; action: "save" | "load" };
 ```
 
 ### 4.5 CanvasEngine
@@ -169,6 +170,7 @@ type CanvasObject = {
 - 保存当前画布对象列表
 - 保存当前选中对象或最近操作对象
 - 维护撤销栈和重做栈
+- 维护浏览器本地工程快照
 - 保存最近语音识别文本和执行结果
 - 为上下文解析提供状态
 
@@ -331,7 +333,7 @@ undoStack 栈顶 -> 当前状态
 redoStack 栈顶 -> 当前状态
 ```
 
-后续可将状态保存到 localStorage 或导出为 JSON 工程文件。当前支持将画布对象序列化为 SVG 后直接下载 SVG 文件，也支持通过浏览器 Canvas 转换并下载 PNG 图片。
+当前支持将状态保存到 localStorage，也支持导出带版本字段的 JSON 工程文件。导出层可将画布对象序列化为 SVG 后直接下载 SVG 文件，或通过浏览器 Canvas 转换并下载 PNG 图片。
 
 ## 8. 当前目录结构
 
@@ -363,6 +365,8 @@ AI_voice_drawing/
       CanvasEngine.ts
       objectFactory.ts
       export.ts
+      project.ts
+      projectStorage.ts
     state/
       store.ts
     styles/
@@ -401,6 +405,9 @@ npm install
 - `clearCanvas`
 - `exportPng`
 - `exportSvg`
+- `exportJson`
+- `saveProject`
+- `loadProject`
 
 这些 API 不直接绑定鼠标或键盘操作，而是由语音解析后的结构化命令统一调用。
 
@@ -418,6 +425,10 @@ MVP 当前支持以下高频指令：
 - “清空画布”
 - “导出为图片”
 - “导出为 SVG”
+- “导出为 JSON”
+- “导出工程文件”
+- “保存工程”
+- “加载工程”
 
 每条语音文本都转换成 `DrawingCommand`。
 
@@ -450,6 +461,8 @@ speechInput.onResult((text) => {
 - 无法理解时展示建议指令
 - 使用 SVG 序列化直接导出 SVG
 - 使用 SVG 序列化和浏览器 Canvas API 导出 PNG
+- 使用 JSON 序列化导出工程文件
+- 使用 localStorage 保存和加载浏览器本地工程快照
 
 ### 9.7 测试覆盖
 
@@ -521,7 +534,7 @@ MVP 依赖浏览器语音识别能力，建议优先使用 Chrome 或 Edge 进�
 - 已增加对象命名和按名称引用能力，支持更精确的语音编辑。
 - 已增加按位置、类型和尺寸定位对象的能力，例如左边圆形、右边圆形、最大矩形。
 - 已增加 SVG 文件导出能力。
-- 后续增加 JSON 工程文件保存/加载。
+- 已增加 JSON 工程文件导出和浏览器本地工程保存/加载能力。
 - 增加图层顺序调整和对象树，为复杂画布管理做准备。
 - 增加模板系统，例如流程图节点、判断节点和思维导图节点。
 
