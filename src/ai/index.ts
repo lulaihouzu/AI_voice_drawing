@@ -1,4 +1,6 @@
 export { createConfiguredAiCommandProvider } from "./configuredProvider";
+export { AiCommandPlanner, createAiCommandPlanner } from "./commandPlanner";
+export type { AiClarification, AiCommandPlannerOptions, AiCommandPlanResult } from "./commandPlanner";
 export { validateDrawingCommands } from "./commandSchema";
 export type { CommandSchemaValidationError, CommandSchemaValidationResult } from "./commandSchema";
 export { createHttpAiCommandProvider, HttpAiCommandProvider } from "./httpCommandProvider";

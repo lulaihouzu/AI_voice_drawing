@@ -58,6 +58,7 @@ MVP 本地验证通过后录制并补充链接。
 - AI 适配器接口：已提供 `AiCommandProvider` 协议和本地 mock provider，用于后续接入 AI 指令理解
 - AI 命令 schema 校验：已提供 `validateDrawingCommands`，对 AI 命令草案做 allow-list 校验和字段清洗
 - AI 解析服务接入：已提供 `HttpAiCommandProvider`，前端通过 `VITE_AI_COMMAND_ENDPOINT` 调用后端代理，返回命令仍必须通过 schema 校验
+- AI 多轮澄清与命令计划：已提供 `AiCommandPlanner`，可在缺少目标对象时保存追问状态，并在用户补充后生成复杂命令计划
 
 ## 目标用户与使用场景
 
@@ -234,6 +235,7 @@ MVP 本地验证通过后录制并补充链接。
 - AI 指令解析 provider 接口与 mock 命令计划生成逻辑
 - AI 命令 schema allow-list 校验逻辑
 - AI 解析服务 provider、后端代理调用边界和失败反馈逻辑
+- AI 多轮澄清状态和复杂命令计划组织逻辑
 - Zustand 状态闭环、撤销重做和反馈队列
 - MVP 指令解析、执行、导出相关单元测试
 
@@ -267,10 +269,11 @@ MVP 本地验证通过后录制并补充链接。
 1. AI 适配器接口与 mock provider
 2. 命令 schema 校验
 3. AI 解析服务 provider
+4. 多轮澄清与复杂指令计划
 
 后续推荐优先顺序：
 
-1. 多轮澄清和复杂指令拆解
+1. AI 解析开关与前端执行入口
 2. 一句话生成图示
 3. 画布总结与优化建议
 4. Demo 脚本和视频链接
@@ -356,5 +359,6 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 - PR #14：实现 AI 适配器接口与 mock provider
 - PR #15：实现 AI 命令 schema 校验
 - PR #16：实现 AI 解析服务接入
+- PR #17：实现 AI 多轮澄清与复杂指令计划
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。
