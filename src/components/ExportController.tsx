@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { downloadCanvasAsPng } from "../canvas/export";
+import { downloadCanvasAsPng, downloadCanvasAsSvg } from "../canvas/export";
 import { useDrawingStore } from "../state/store";
 
 export function ExportController() {
@@ -13,15 +13,25 @@ export function ExportController() {
 
     let cancelled = false;
 
-    downloadCanvasAsPng(pendingExport)
+    const formatLabel = pendingExport.format.toUpperCase();
+
+    Promise.resolve()
+      .then(() => {
+        if (pendingExport.format === "svg") {
+          downloadCanvasAsSvg(pendingExport);
+          return;
+        }
+
+        return downloadCanvasAsPng(pendingExport);
+      })
       .then(() => {
         if (!cancelled) {
-          completeExport("已导出 PNG 图片。", "success");
+          completeExport(`已导出 ${formatLabel} 文件。`, "success");
         }
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          const message = error instanceof Error ? error.message : "导出图片失败。";
+          const message = error instanceof Error ? error.message : `导出 ${formatLabel} 文件失败。`;
           completeExport(message, "error");
         }
       });

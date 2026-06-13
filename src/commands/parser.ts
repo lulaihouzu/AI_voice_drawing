@@ -11,7 +11,7 @@ import type {
 } from "./types";
 import { isActiveReference, normalizeObjectName } from "./objectNames";
 
-const suggestions = ["画一个红色圆形", "把它命名为开始", "移动开始节点向右", "撤销", "导出为图片"];
+const suggestions = ["画一个红色圆形", "把它命名为开始", "移动开始节点向右", "导出为 SVG", "导出为图片"];
 
 const colorMap: Array<[string, string]> = [
   ["红色", "#ef4444"],
@@ -108,8 +108,8 @@ function parseSingleClause(text: string, rawText: string): ParseResult {
     return ok(rawText, [{ type: "clear" }]);
   }
 
-  if (text.includes("导出") || text.includes("保存为图片") || text.includes("下载图片")) {
-    return ok(rawText, [{ type: "export", format: "png" }]);
+  if (isExportLike(text)) {
+    return ok(rawText, [{ type: "export", format: findExportFormat(text) }]);
   }
 
   const renameName = extractRenameName(text);
@@ -181,6 +181,24 @@ function findDirection(text: string) {
       text.includes(`${keyword}边移`) ||
       text.includes(`${keyword}一点`),
   )?.[1];
+}
+
+function isExportLike(text: string) {
+  return (
+    text.includes("导出") ||
+    text.includes("保存为图片") ||
+    text.includes("下载图片") ||
+    ((text.includes("保存") || text.includes("下载")) && /svg/i.test(text)) ||
+    text.includes("矢量图")
+  );
+}
+
+function findExportFormat(text: string): "png" | "svg" {
+  if (/svg/i.test(text) || text.includes("矢量图")) {
+    return "svg";
+  }
+
+  return "png";
 }
 
 function extractRenameName(text: string) {

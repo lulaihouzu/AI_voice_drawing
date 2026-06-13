@@ -100,7 +100,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       message = result.message;
 
       if (command.type === "export" && nextObjects.length > 0) {
-        pendingExport = createCanvasExportRequest(nextObjects);
+        pendingExport = createCanvasExportRequest(nextObjects, command.format);
       }
     });
 

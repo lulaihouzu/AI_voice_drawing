@@ -179,7 +179,7 @@ describe("useDrawingStore command loop", () => {
       ok: true,
       changed: false,
       exportRequested: true,
-      message: "正在导出 PNG 图片。",
+      message: "正在导出 PNG 文件。",
     });
     expect(state.pendingExport).toMatchObject({
       format: "png",
@@ -200,9 +200,33 @@ describe("useDrawingStore command loop", () => {
       ok: true,
       changed: false,
       exportRequested: false,
-      message: "画布为空，无法导出图片。",
+      message: "画布为空，无法导出 PNG 文件。",
     });
     expect(state.pendingExport).toBeUndefined();
+  });
+
+  it("creates an svg export request for non-empty canvas", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画一个蓝色矩形");
+    const result = useDrawingStore.getState().runCommandText("导出为 SVG");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      exportRequested: true,
+      message: "正在导出 SVG 文件。",
+    });
+    expect(state.pendingExport).toMatchObject({
+      format: "svg",
+      objects: [
+        {
+          type: "rect",
+        },
+      ],
+    });
+    expect(state.pendingExport?.filename).toMatch(/^ai-voice-drawing-\d{8}-\d{6}\.svg$/);
   });
 
   it("clears pending export after completion feedback", () => {
