@@ -57,6 +57,7 @@ MVP 本地验证通过后录制并补充链接。
 - 图层顺序：支持“把它置顶”“把开始节点置底”“把左边那个圆上移一层”
 - AI 适配器接口：已提供 `AiCommandProvider` 协议和本地 mock provider，用于后续接入 AI 指令理解
 - AI 命令 schema 校验：已提供 `validateDrawingCommands`，对 AI 命令草案做 allow-list 校验和字段清洗
+- AI 解析服务接入：已提供 `HttpAiCommandProvider`，前端通过 `VITE_AI_COMMAND_ENDPOINT` 调用后端代理，返回命令仍必须通过 schema 校验
 
 ## 目标用户与使用场景
 
@@ -232,6 +233,7 @@ MVP 本地验证通过后录制并补充链接。
 - JSON 工程文件序列化与浏览器本地保存/加载逻辑
 - AI 指令解析 provider 接口与 mock 命令计划生成逻辑
 - AI 命令 schema allow-list 校验逻辑
+- AI 解析服务 provider、后端代理调用边界和失败反馈逻辑
 - Zustand 状态闭环、撤销重做和反馈队列
 - MVP 指令解析、执行、导出相关单元测试
 
@@ -264,14 +266,14 @@ MVP 本地验证通过后录制并补充链接。
 
 1. AI 适配器接口与 mock provider
 2. 命令 schema 校验
+3. AI 解析服务 provider
 
 后续推荐优先顺序：
 
-1. AI 解析服务接入
-2. 多轮澄清和复杂指令拆解
-3. 一句话生成图示
-4. 画布总结与优化建议
-5. Demo 脚本和视频链接
+1. 多轮澄清和复杂指令拆解
+2. 一句话生成图示
+3. 画布总结与优化建议
+4. Demo 脚本和视频链接
 
 ## 本地运行
 
@@ -298,6 +300,14 @@ npm run build
 ```bash
 npm run test
 ```
+
+AI 解析服务配置：
+
+```bash
+VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
+```
+
+`VITE_AI_COMMAND_ENDPOINT` 应指向后端代理或本地服务。前端不会保存或打包模型 API key；服务端返回的数据也必须是合法命令数组，前端会再次通过 `validateDrawingCommands` 校验后才允许进入后续执行链路。
 
 ## 推荐验证流程
 
@@ -345,5 +355,6 @@ npm run test
 - PR #13：实现语音图层顺序调整
 - PR #14：实现 AI 适配器接口与 mock provider
 - PR #15：实现 AI 命令 schema 校验
+- PR #16：实现 AI 解析服务接入
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。
