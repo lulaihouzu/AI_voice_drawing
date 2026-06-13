@@ -512,6 +512,7 @@ speechInput.onResult((text) => {
 - 测试 AI command planner 的复杂命令计划、待澄清状态和用户回答补全
 - 测试 AI 解析开关、语音开关指令、AI fallback 和确认执行入口
 - 测试一句话主题图示模板生成和 AI 语音确认执行闭环
+- 测试 AI 画布总结、优化建议和洞察反馈闭环
 
 ### 9.8 AI 适配器
 
@@ -519,15 +520,16 @@ speechInput.onResult((text) => {
 
 - `AiCommandProvider`：统一 provider 接口。
 - `AiCommandContext`：传递画布对象、当前对象和最近对象等上下文。
-- `AiCommandResult`：区分成功命令草案与失败反馈。
+- `AiCommandResult`：区分可执行命令草案、洞察反馈与失败反馈。
 - `MockAiCommandProvider`：测试和演示用 provider，不访问真实模型。
 - `MockAiCommandProvider` 内置主题模板，支持将“生成订单支付流程图”等一句话转换为顺序节点和连接箭头。
+- `canvasInsights`：根据当前画布对象生成中文内容总结和优化建议。
 - `validateDrawingCommands`：校验未知 JSON 是否为合法 `DrawingCommand[]`，并返回清洗后的命令数组。
-- `HttpAiCommandProvider`：向配置的 AI 解析服务发送 `{ text, context }`，并把服务响应转换为统一的 `AiCommandResult`。
+- `HttpAiCommandProvider`：向配置的 AI 解析服务发送 `{ text, context }`，并把命令响应或 `kind: "insight"` 洞察响应转换为统一的 `AiCommandResult`。
 - `createConfiguredAiCommandProvider`：读取 `import.meta.env.VITE_AI_COMMAND_ENDPOINT` 创建 HTTP provider。
-- `AiCommandPlanner`：把 provider 成功结果整理为可确认的命令计划；遇到“没有当前对象”等可补充失败时生成 `AiClarification`，等待用户下一句语音补全。
+- `AiCommandPlanner`：把 provider 命令结果整理为可确认的命令计划；把洞察结果直接返回给反馈链路；遇到“没有当前对象”等可补充失败时生成 `AiClarification`，等待用户下一句语音补全。
 
-HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器。
+HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器；画布总结、优化建议等洞察结果只进入反馈面板和语音播报，不进入执行器。
 
 ## 10. 如何运行
 
@@ -611,6 +613,19 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 
 前端收到响应后会先执行 JSON 解析、服务失败判断和 `validateDrawingCommands` 校验，校验失败时不会进入命令执行链路。
 
+洞察类响应可返回：
+
+```json
+{
+  "kind": "insight",
+  "message": "当前画布共有 3 个对象，建议增加箭头连接关键节点。",
+  "explanation": "生成画布优化建议。",
+  "confidence": 0.8
+}
+```
+
+洞察类响应不需要用户确认，也不会修改画布。
+
 ## 11. 浏览器兼容性
 
 MVP 依赖浏览器语音识别能力，建议优先使用 Chrome 或 Edge 进行演示。部分浏览器可能不支持 Web Speech API，或者需要 HTTPS 环境才能稳定使用麦克风。
@@ -656,7 +671,9 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 - 已增加 `AiCommandPlanner`，支持复杂命令计划和多轮澄清状态。
 - 已增加 AI 解析开关、语音开关指令、待确认计划和前端执行入口。
 - 已增加一句话生成图示基础模板，mock provider 可生成多类流程图命令计划。
-- AI 输出必须经过命令 schema 校验。
+- 已增加 AI 洞察反馈，支持画布内容总结和优化建议。
+- 可执行 AI 输出必须经过命令 schema 校验。
+- 洞察类 AI 输出只允许作为文本反馈，不进入命令执行器。
 - 测试环境默认使用 mock provider。
 - 真实模型调用应通过后端代理或本地服务注入密钥，不把 API key 打包进前端。
 - AI 解析失败时回退到规则解析反馈链路。

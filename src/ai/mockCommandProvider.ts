@@ -1,4 +1,5 @@
-import type { AiCommandContext, AiCommandProvider, AiCommandResult } from "./types";
+import type { AiCommandContext, AiCommandProvider, AiCommandResult, AiCommandSuccess, AiInsightSuccess } from "./types";
+import { createCanvasOptimizationAdvice, createCanvasSummary } from "./canvasInsights";
 import { normalizeObjectName } from "../commands/objectNames";
 import type { DrawingCommand, PositionRegion, ShapeType, TargetQuery, TargetSpec } from "../commands/types";
 
@@ -62,6 +63,26 @@ export class MockAiCommandProvider implements AiCommandProvider {
       return failure("没有收到可解析的文本。", ["请描述要生成的图示", "例如：生成一个用户登录流程图"], true);
     }
 
+    if (isCanvasSummaryRequest(normalizedText)) {
+      const message = createCanvasSummary(context);
+
+      return insight({
+        message,
+        explanation: "mock provider 根据当前画布对象生成了内容总结。",
+        confidence: 0.76,
+      });
+    }
+
+    if (isCanvasOptimizationRequest(normalizedText)) {
+      const message = createCanvasOptimizationAdvice(context);
+
+      return insight({
+        message,
+        explanation: "mock provider 根据当前画布对象生成了优化建议。",
+        confidence: 0.74,
+      });
+    }
+
     const diagramPlan = createDiagramPlan(normalizedText);
 
     if (diagramPlan) {
@@ -100,7 +121,11 @@ export class MockAiCommandProvider implements AiCommandProvider {
       });
     }
 
-    return failure("mock provider 暂未覆盖这类复杂指令。", ["生成一个用户登录流程图", "生成一个订单支付流程图", "帮我强调当前图形"], false);
+    return failure(
+      "mock provider 暂未覆盖这类复杂指令。",
+      ["生成一个用户登录流程图", "生成一个订单支付流程图", "现在画布里有什么", "帮我优化这个流程图"],
+      false,
+    );
   }
 }
 
@@ -108,11 +133,21 @@ export function createMockAiCommandProvider() {
   return new MockAiCommandProvider();
 }
 
-function success(result: Omit<Extract<AiCommandResult, { ok: true }>, "ok" | "providerId" | "requiresConfirmation">): AiCommandResult {
+function success(result: Omit<AiCommandSuccess, "ok" | "providerId" | "kind" | "requiresConfirmation">): AiCommandResult {
   return {
     ok: true,
+    kind: "commands",
     providerId: mockProviderId,
     requiresConfirmation: true,
+    ...result,
+  };
+}
+
+function insight(result: Omit<AiInsightSuccess, "ok" | "providerId" | "kind">): AiCommandResult {
+  return {
+    ok: true,
+    kind: "insight",
+    providerId: mockProviderId,
     ...result,
   };
 }
@@ -204,6 +239,20 @@ function isDiagramGenerationRequest(text: string) {
 
 function isThreeStepFlowRequest(text: string) {
   return (text.includes("三步") || text.includes("3步")) && (text.includes("流程") || text.includes("流程图"));
+}
+
+function isCanvasSummaryRequest(text: string) {
+  return (
+    (text.includes("画布") || text.includes("图上") || text.includes("当前")) &&
+    (text.includes("有什么") || text.includes("内容") || text.includes("总结") || text.includes("概览") || text.includes("状态"))
+  );
+}
+
+function isCanvasOptimizationRequest(text: string) {
+  return (
+    (text.includes("优化") || text.includes("建议") || text.includes("改进") || text.includes("检查")) &&
+    (text.includes("画布") || text.includes("流程图") || text.includes("图示") || text.includes("布局"))
+  );
 }
 
 function isHighlightRequest(text: string) {

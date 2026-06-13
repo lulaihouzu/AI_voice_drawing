@@ -215,6 +215,27 @@ describe("useDrawingStore command loop", () => {
     ]);
   });
 
+  it("returns canvas insight feedback without AI confirmation", async () => {
+    const store = useDrawingStore.getState();
+
+    store.setAiEnabled(true);
+    store.runCommandText("画一个红色圆形");
+    const result = await useDrawingStore.getState().runVoiceCommandText("现在画布里有什么");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      source: "ai",
+      commandCount: 0,
+    });
+    expect(result.message).toContain("当前画布共有 1 个对象");
+    expect(state.aiStatus).toBe("idle");
+    expect(state.pendingAiPlan).toBeUndefined();
+    expect(state.feedback[0].message).toContain("当前画布共有 1 个对象");
+    expect(state.objects).toHaveLength(1);
+  });
+
   it("asks for clarification and resolves it before AI confirmation", async () => {
     const store = useDrawingStore.getState();
 

@@ -6,4 +6,4 @@ export type { CommandSchemaValidationError, CommandSchemaValidationResult } from
 export { createHttpAiCommandProvider, HttpAiCommandProvider } from "./httpCommandProvider";
 export type { HttpAiCommandProviderOptions } from "./httpCommandProvider";
 export { createMockAiCommandProvider, MockAiCommandProvider } from "./mockCommandProvider";
-export type { AiCommandContext, AiCommandFailure, AiCommandProvider, AiCommandResult, AiCommandSuccess } from "./types";
+export type { AiCommandContext, AiCommandFailure, AiCommandProvider, AiCommandResult, AiCommandSuccess, AiInsightSuccess } from "./types";

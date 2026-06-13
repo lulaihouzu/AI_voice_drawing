@@ -57,6 +57,38 @@ describe("AiCommandPlanner", () => {
     expect(planner.getPendingClarification()).toEqual(result.clarification);
   });
 
+  it("returns an insight result without building a command plan", async () => {
+    const planner = createAiCommandPlanner(createMockAiCommandProvider());
+    const result = await planner.plan("现在画布里有什么", {
+      objects: [
+        {
+          id: "object-1",
+          type: "text",
+          text: "开始",
+          x: 260,
+          y: 310,
+          style: {},
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      activeObjectId: "object-1",
+    });
+
+    expect(result).toMatchObject({
+      status: "insight",
+      providerId: "mock-ai-command-provider",
+      resolvedText: "现在画布里有什么",
+    });
+
+    if (result.status !== "insight") {
+      throw new Error("Expected an AI insight result.");
+    }
+
+    expect(result.message).toContain("当前画布共有 1 个对象");
+    expect(result.message).toContain("当前选中的是“开始”文本");
+  });
+
   it("resolves a pending clarification with a spoken target answer", async () => {
     const planner = createAiCommandPlanner(createMockAiCommandProvider(), {
       createClarificationId: () => "clarification-1",

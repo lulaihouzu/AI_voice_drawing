@@ -1,5 +1,5 @@
 import type { DrawingCommand } from "../commands/types";
-import type { AiCommandContext, AiCommandFailure, AiCommandProvider, AiCommandSuccess } from "./types";
+import type { AiCommandContext, AiCommandFailure, AiCommandProvider, AiCommandSuccess, AiInsightSuccess } from "./types";
 
 export type AiClarification = {
   id: string;
@@ -26,6 +26,15 @@ export type AiCommandPlanResult =
       status: "needs-clarification";
       providerId: string;
       clarification: AiClarification;
+    }
+  | {
+      status: "insight";
+      providerId: string;
+      message: string;
+      explanation: string;
+      confidence: number;
+      resolvedText: string;
+      clarifiedFrom?: AiClarification;
     }
   | {
       status: "failed";
@@ -73,6 +82,10 @@ export class AiCommandPlanner {
     const result = await this.provider.parseCommand(normalizedText, context);
 
     if (result.ok) {
+      if (result.kind === "insight") {
+        return toInsightPlan(result, normalizedText);
+      }
+
       return toReadyPlan(result, normalizedText);
     }
 
@@ -102,6 +115,10 @@ export class AiCommandPlanner {
     const result = await this.provider.parseCommand(resolvedText, context);
 
     if (result.ok) {
+      if (result.kind === "insight") {
+        return toInsightPlan(result, resolvedText, clarification);
+      }
+
       return toReadyPlan(result, resolvedText, clarification);
     }
 
@@ -151,6 +168,18 @@ function toReadyPlan(result: AiCommandSuccess, resolvedText: string, clarifiedFr
     explanation: result.explanation,
     confidence: result.confidence,
     requiresConfirmation: result.requiresConfirmation,
+    resolvedText,
+    clarifiedFrom,
+  };
+}
+
+function toInsightPlan(result: AiInsightSuccess, resolvedText: string, clarifiedFrom?: AiClarification): AiCommandPlanResult {
+  return {
+    status: "insight",
+    providerId: result.providerId,
+    message: result.message,
+    explanation: result.explanation,
+    confidence: result.confidence,
     resolvedText,
     clarifiedFrom,
   };
