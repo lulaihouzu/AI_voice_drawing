@@ -220,7 +220,8 @@ type AppState = {
 
 - `MockAiCommandProvider`：本地 deterministic mock，不请求网络，不需要 API key。
 - mock 场景覆盖用户登录流程图、三步流程图、强调当前图形。
-- mock 输出暂不接入自动执行链路，下一步会先增加命令 schema 校验。
+- `validateDrawingCommands`：对 AI 命令草案做 allow-list 校验、字段清洗和错误反馈。
+- AI 输出暂不接入自动执行链路，真实执行前必须先通过命令 schema 校验。
 
 ## 5. 指令执行机制
 
@@ -382,6 +383,7 @@ AI_voice_drawing/
       index.ts
       types.ts
       mockCommandProvider.ts
+      commandSchema.ts
     canvas/
       CanvasEngine.ts
       objectFactory.ts
@@ -505,8 +507,9 @@ speechInput.onResult((text) => {
 - `AiCommandContext`：传递画布对象、当前对象和最近对象等上下文。
 - `AiCommandResult`：区分成功命令草案与失败反馈。
 - `MockAiCommandProvider`：测试和演示用 provider，不访问真实模型。
+- `validateDrawingCommands`：校验未知 JSON 是否为合法 `DrawingCommand[]`，并返回清洗后的命令数组。
 
-当前阶段只生成命令草案，不自动执行。真实执行前必须先经过后续命令 schema 校验模块。
+当前阶段只生成并校验命令草案，不自动执行。后续真实模型接入也必须复用同一校验器，避免非法结构进入执行器。
 
 ## 10. 如何运行
 
@@ -592,6 +595,7 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 关键约束：
 
 - 已增加 `AiCommandProvider` 接口和 `MockAiCommandProvider`。
+- 已增加 `validateDrawingCommands` 命令 schema 校验器。
 - AI 输出必须经过命令 schema 校验。
 - 测试环境默认使用 mock provider。
 - 真实模型调用应通过后端代理或环境变量注入密钥，不把 API key 打包进前端。
