@@ -59,6 +59,7 @@ MVP 本地验证通过后录制并补充链接。
 - AI 命令 schema 校验：已提供 `validateDrawingCommands`，对 AI 命令草案做 allow-list 校验和字段清洗
 - AI 解析服务接入：已提供 `HttpAiCommandProvider`，前端通过 `VITE_AI_COMMAND_ENDPOINT` 调用后端代理，返回命令仍必须通过 schema 校验
 - AI 多轮澄清与命令计划：已提供 `AiCommandPlanner`，可在缺少目标对象时保存追问状态，并在用户补充后生成复杂命令计划
+- AI 解析开关与前端执行入口：侧栏可开启 AI 解析，规则无法覆盖的语音会进入 AI planner，并要求语音确认后执行
 
 ## 目标用户与使用场景
 
@@ -236,6 +237,7 @@ MVP 本地验证通过后录制并补充链接。
 - AI 命令 schema allow-list 校验逻辑
 - AI 解析服务 provider、后端代理调用边界和失败反馈逻辑
 - AI 多轮澄清状态和复杂命令计划组织逻辑
+- AI 解析开关、语音确认执行和 AI 状态反馈逻辑
 - Zustand 状态闭环、撤销重做和反馈队列
 - MVP 指令解析、执行、导出相关单元测试
 
@@ -270,13 +272,13 @@ MVP 本地验证通过后录制并补充链接。
 2. 命令 schema 校验
 3. AI 解析服务 provider
 4. 多轮澄清与复杂指令计划
+5. AI 解析开关与前端执行入口
 
 后续推荐优先顺序：
 
-1. AI 解析开关与前端执行入口
-2. 一句话生成图示
-3. 画布总结与优化建议
-4. Demo 脚本和视频链接
+1. 一句话生成图示
+2. 画布总结与优化建议
+3. Demo 脚本和视频链接
 
 ## 本地运行
 
@@ -312,6 +314,8 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 
 `VITE_AI_COMMAND_ENDPOINT` 应指向后端代理或本地服务。前端不会保存或打包模型 API key；服务端返回的数据也必须是合法命令数组，前端会再次通过 `validateDrawingCommands` 校验后才允许进入后续执行链路。
 
+未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端 AI 开关默认使用本地 mock provider，便于演示“生成用户登录流程图”“高亮这个图形”等 AI 命令计划；配置 endpoint 后会切换到 HTTP provider。
+
 ## 推荐验证流程
 
 1. 使用 Chrome 或 Edge 打开本地开发地址。
@@ -337,6 +341,12 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 清空画布
 加载工程
 导出为 JSON
+开启 AI 解析
+帮我生成一个用户登录流程图
+确认执行
+帮我高亮这个图形
+左边的圆
+确认执行
 ```
 
 ## PR 与持续交付记录
@@ -360,5 +370,6 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 - PR #15：实现 AI 命令 schema 校验
 - PR #16：实现 AI 解析服务接入
 - PR #17：实现 AI 多轮澄清与复杂指令计划
+- PR #18：实现 AI 解析开关与前端执行入口
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。

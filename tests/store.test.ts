@@ -11,6 +11,10 @@ function resetStore() {
     lastTranscript: "",
     lastInterimTranscript: "",
     voiceStatus: "idle",
+    aiEnabled: false,
+    aiStatus: "off",
+    pendingAiClarification: undefined,
+    pendingAiPlan: undefined,
     undoStack: [],
     redoStack: [],
     pendingExport: undefined,
@@ -77,6 +81,156 @@ describe("useDrawingStore command loop", () => {
     });
     expect(state.objects).toHaveLength(0);
     expect(state.feedback[0].level).toBe("error");
+  });
+
+  it("keeps AI disabled unless the user turns it on", async () => {
+    const result = await useDrawingStore.getState().runVoiceCommandText("帮我生成一个用户登录流程图");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: false,
+      changed: false,
+      source: "rules",
+    });
+    expect(state.aiEnabled).toBe(false);
+    expect(state.aiStatus).toBe("off");
+    expect(state.pendingAiPlan).toBeUndefined();
+  });
+
+  it("toggles AI parsing through voice commands", async () => {
+    const enableResult = await useDrawingStore.getState().runVoiceCommandText("开启 AI 解析");
+    const enabledState = useDrawingStore.getState();
+    const disableResult = await useDrawingStore.getState().runVoiceCommandText("关闭AI解析");
+    const disabledState = useDrawingStore.getState();
+
+    expect(enableResult).toMatchObject({
+      ok: true,
+      changed: false,
+      message: "AI 解析已开启。",
+    });
+    expect(enabledState.aiEnabled).toBe(true);
+    expect(enabledState.aiStatus).toBe("idle");
+    expect(disableResult).toMatchObject({
+      ok: true,
+      changed: false,
+      message: "AI 解析已关闭。",
+    });
+    expect(disabledState.aiEnabled).toBe(false);
+    expect(disabledState.aiStatus).toBe("off");
+  });
+
+  it("runs supported rule commands directly when AI is enabled", async () => {
+    const store = useDrawingStore.getState();
+
+    store.setAiEnabled(true);
+    const result = await useDrawingStore.getState().runVoiceCommandText("画一个红色圆形");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: true,
+      source: "rules",
+      commandCount: 1,
+    });
+    expect(state.aiStatus).toBe("idle");
+    expect(state.objects[0]).toMatchObject({
+      type: "circle",
+      style: {
+        fill: "#ef4444",
+      },
+    });
+  });
+
+  it("creates and confirms an AI command plan from voice input", async () => {
+    const store = useDrawingStore.getState();
+
+    store.setAiEnabled(true);
+    const planResult = await useDrawingStore.getState().runVoiceCommandText("帮我生成一个用户登录流程图");
+    const plannedState = useDrawingStore.getState();
+
+    expect(planResult).toMatchObject({
+      ok: true,
+      changed: false,
+      source: "ai",
+      awaitingConfirmation: true,
+      commandCount: 4,
+    });
+    expect(plannedState.aiStatus).toBe("waiting-confirmation");
+    expect(plannedState.pendingAiPlan).toMatchObject({
+      commandCount: 4,
+      resolvedText: "帮我生成一个用户登录流程图",
+    });
+    expect(plannedState.objects).toHaveLength(0);
+
+    const confirmResult = await useDrawingStore.getState().runVoiceCommandText("确认执行");
+    const confirmedState = useDrawingStore.getState();
+
+    expect(confirmResult).toMatchObject({
+      ok: true,
+      changed: true,
+      source: "ai",
+      message: "AI 已执行 4 个操作。",
+      commandCount: 4,
+    });
+    expect(confirmedState.aiStatus).toBe("idle");
+    expect(confirmedState.pendingAiPlan).toBeUndefined();
+    expect(confirmedState.objects).toHaveLength(4);
+  });
+
+  it("asks for clarification and resolves it before AI confirmation", async () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画两个圆");
+    useDrawingStore.setState({
+      activeObjectId: undefined,
+      lastCreatedObjectId: undefined,
+    });
+    useDrawingStore.getState().setAiEnabled(true);
+
+    const clarificationResult = await useDrawingStore.getState().runVoiceCommandText("帮我高亮这个图形");
+    const clarificationState = useDrawingStore.getState();
+
+    expect(clarificationResult).toMatchObject({
+      ok: true,
+      changed: false,
+      source: "ai",
+      message: "你想操作哪个对象？",
+    });
+    expect(clarificationState.aiStatus).toBe("waiting-clarification");
+    expect(clarificationState.pendingAiClarification).toMatchObject({
+      originalText: "帮我高亮这个图形",
+    });
+
+    const answerResult = await useDrawingStore.getState().runVoiceCommandText("左边的圆");
+    const plannedState = useDrawingStore.getState();
+
+    expect(answerResult).toMatchObject({
+      ok: true,
+      changed: false,
+      source: "ai",
+      awaitingConfirmation: true,
+      commandCount: 2,
+    });
+    expect(plannedState.aiStatus).toBe("waiting-confirmation");
+    expect(plannedState.pendingAiPlan).toMatchObject({
+      commandCount: 2,
+      resolvedText: "帮我高亮左边的圆",
+    });
+
+    const confirmResult = await useDrawingStore.getState().runVoiceCommandText("确认执行");
+    const confirmedState = useDrawingStore.getState();
+
+    expect(confirmResult).toMatchObject({
+      ok: true,
+      changed: true,
+      message: "AI 已执行 2 个操作。",
+    });
+    expect(confirmedState.aiStatus).toBe("idle");
+    expect(confirmedState.objects.find((object) => object.x === 260)).toMatchObject({
+      style: {
+        fill: "#facc15",
+      },
+    });
   });
 
   it("updates interim transcript and voice status independently", () => {

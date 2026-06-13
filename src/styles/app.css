@@ -213,6 +213,48 @@ button {
   color: #9f1239;
 }
 
+.voice-pill.ai-status-idle {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.voice-pill.ai-status-planning,
+.voice-pill.ai-status-waiting-clarification,
+.voice-pill.ai-status-waiting-confirmation {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.voice-pill.ai-status-error {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+}
+
+.ai-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  margin-top: 12px;
+  border: 1px solid #d6dee8;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ai-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f766e;
+}
+
 .transcript-box {
   display: grid;
   gap: 6px;

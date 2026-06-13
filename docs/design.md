@@ -167,6 +167,8 @@ MVP 采用本地规则解析和前端内存状态执行，避免网络请求带�
 
 AI 解析服务仅作为规则链路外的拓展能力。当前 HTTP provider 默认设置 12 秒超时，并在服务不可用、返回非法 JSON 或命令 schema 校验失败时给出明确失败反馈，不会直接修改画布。
 
+AI 解析开启后，系统仍优先执行本地规则命令；只有规则无法解析或存在待补充 AI 问题时才进入 AI planner。AI 生成的命令计划默认需要用户说“确认执行”后才进入执行器。
+
 预期响应：
 
 - 简单绘图、编辑、移动：语音识别完成后快速执行
@@ -185,7 +187,7 @@ AI 解析服务仅作为规则链路外的拓展能力。当前 HTTP provider �
 - 画布执行：`tests/executor.test.ts`
 - 状态闭环：`tests/store.test.ts`
 - 导出序列化：`tests/export.test.ts`
-- AI provider、planner 和 schema 校验：`tests/aiProvider.test.ts`、`tests/aiPlanner.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`
+- AI provider、planner、前端入口和 schema 校验：`tests/aiProvider.test.ts`、`tests/aiPlanner.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`、`tests/store.test.ts`
 
 验证命令：
 
@@ -198,7 +200,7 @@ npm run build
 当前测试结果：
 
 - 安全审计：0 漏洞
-- 单元测试：8 个测试文件，70 个测试
+- 单元测试：8 个测试文件，75 个测试
 - 生产构建：通过
 
 ## 8. 原创与第三方边界
@@ -217,6 +219,7 @@ npm run build
 - AI 命令 schema allow-list 校验
 - HTTP AI provider、服务调用边界和失败反馈逻辑
 - AI 多轮澄清状态和复杂命令计划组织逻辑
+- AI 解析开关、语音确认执行和前端状态反馈逻辑
 - 反馈和语音播报机制
 
 第三方依赖用途：
