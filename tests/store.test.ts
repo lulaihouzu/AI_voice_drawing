@@ -170,6 +170,32 @@ describe("useDrawingStore command loop", () => {
     expect(state.objects[1].style.fill).toBeUndefined();
   });
 
+  it("changes layer order through voice commands and supports undo", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画两个圆");
+    const initialOrder = useDrawingStore.getState().objects.map((object) => object.id);
+    const result = useDrawingStore.getState().runCommandText("把左边那个圆置顶");
+    const layeredState = useDrawingStore.getState();
+    const undoResult = useDrawingStore.getState().runCommandText("撤销");
+    const undoState = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: true,
+      message: "已将图形置于顶层。",
+      level: "success",
+    });
+    expect(layeredState.objects.map((object) => object.id)).toEqual([initialOrder[1], initialOrder[0]]);
+    expect(layeredState.activeObjectId).toBe(initialOrder[0]);
+    expect(undoResult).toMatchObject({
+      ok: true,
+      changed: true,
+      message: "已撤销。",
+    });
+    expect(undoState.objects.map((object) => object.id)).toEqual(initialOrder);
+  });
+
   it("creates an export request for non-empty canvas", () => {
     const store = useDrawingStore.getState();
 

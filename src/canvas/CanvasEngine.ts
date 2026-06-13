@@ -1,5 +1,5 @@
 import { createCanvasObject } from "./objectFactory";
-import type { CanvasObject, Direction, DrawingCommand, ShapePatch } from "../commands/types";
+import type { CanvasObject, Direction, DrawingCommand, LayerAction, ShapePatch } from "../commands/types";
 
 export class CanvasEngine {
   createObject(command: Extract<DrawingCommand, { type: "create" }>, existingObjects: CanvasObject[] = []) {
@@ -62,6 +62,29 @@ export class CanvasEngine {
 
     return { objects: nextObjects, activeObjectId: targetId };
   }
+
+  reorderObject(objects: CanvasObject[], targetId: string, action: LayerAction) {
+    const currentIndex = objects.findIndex((object) => object.id === targetId);
+
+    if (currentIndex === -1) {
+      return { objects, activeObjectId: undefined, changed: false };
+    }
+
+    const targetIndex = getLayerTargetIndex(currentIndex, objects.length, action);
+
+    if (targetIndex === currentIndex) {
+      return { objects, activeObjectId: targetId, changed: false };
+    }
+
+    const nextObjects = [...objects];
+    const [targetObject] = nextObjects.splice(currentIndex, 1);
+    nextObjects.splice(targetIndex, 0, {
+      ...targetObject,
+      updatedAt: Date.now(),
+    });
+
+    return { objects: nextObjects, activeObjectId: targetId, changed: true };
+  }
 }
 
 function toVector(direction: Direction, distance: number) {
@@ -78,4 +101,20 @@ function toVector(direction: Direction, distance: number) {
   }
 
   return { x: distance, y: 0 };
+}
+
+function getLayerTargetIndex(currentIndex: number, objectCount: number, action: LayerAction) {
+  if (action === "front") {
+    return objectCount - 1;
+  }
+
+  if (action === "back") {
+    return 0;
+  }
+
+  if (action === "forward") {
+    return Math.min(currentIndex + 1, objectCount - 1);
+  }
+
+  return Math.max(currentIndex - 1, 0);
 }

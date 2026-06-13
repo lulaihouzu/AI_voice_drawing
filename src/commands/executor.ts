@@ -94,6 +94,21 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
     };
   }
 
+  if (command.type === "layer") {
+    const targetId = resolveTargetId(state, command.target);
+
+    if (!targetId) {
+      return { ...state, changed: false, message: getMissingTargetMessage(command.target, "调整层级") };
+    }
+
+    const result = canvasEngine.reorderObject(state.objects, targetId, command.action);
+
+    return {
+      ...result,
+      message: result.changed ? getLayerSuccessMessage(command.action) : getLayerBoundaryMessage(command.action),
+    };
+  }
+
   if (command.type === "clear") {
     return {
       objects: [],
@@ -162,4 +177,28 @@ function getMissingTargetMessage(target: TargetSpec, action: string) {
 
 function isNameUsedByOtherObject(objects: CanvasObject[], targetId: string, name: string) {
   return objects.some((object) => object.id !== targetId && normalizeObjectName(object.name) === name);
+}
+
+function getLayerSuccessMessage(action: Extract<DrawingCommand, { type: "layer" }>["action"]) {
+  if (action === "front") {
+    return "已将图形置于顶层。";
+  }
+
+  if (action === "back") {
+    return "已将图形置于底层。";
+  }
+
+  if (action === "forward") {
+    return "已上移一层。";
+  }
+
+  return "已下移一层。";
+}
+
+function getLayerBoundaryMessage(action: Extract<DrawingCommand, { type: "layer" }>["action"]) {
+  if (action === "front" || action === "forward") {
+    return "图形已经在顶层。";
+  }
+
+  return "图形已经在底层。";
 }

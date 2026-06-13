@@ -194,6 +194,51 @@ describe("parseCommand", () => {
     });
   });
 
+  it("parses layer order commands", () => {
+    const frontCommands = expectOk(parseCommand("把它置顶"));
+    const backCommands = expectOk(parseCommand("把开始节点置底"));
+    const forwardCommands = expectOk(parseCommand("把左边那个圆上移一层"));
+    const backwardCommands = expectOk(parseCommand("把最大的矩形下移一层"));
+
+    expect(frontCommands[0]).toMatchObject({
+      type: "layer",
+      target: {
+        ref: "active",
+      },
+      action: "front",
+    });
+    expect(backCommands[0]).toMatchObject({
+      type: "layer",
+      target: {
+        ref: "name",
+        name: "开始",
+      },
+      action: "back",
+    });
+    expect(forwardCommands[0]).toMatchObject({
+      type: "layer",
+      target: {
+        ref: "query",
+        query: {
+          region: "left",
+          shape: "circle",
+        },
+      },
+      action: "forward",
+    });
+    expect(backwardCommands[0]).toMatchObject({
+      type: "layer",
+      target: {
+        ref: "query",
+        query: {
+          sizeRank: "largest",
+          shape: "rect",
+        },
+      },
+      action: "backward",
+    });
+  });
+
   it("parses scale commands", () => {
     const enlargeCommands = expectOk(parseCommand("把它放大一点"));
     const shrinkCommands = expectOk(parseCommand("把它缩小一点"));

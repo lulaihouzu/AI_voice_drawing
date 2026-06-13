@@ -2,6 +2,8 @@ export type ShapeType = "circle" | "rect" | "line" | "arrow" | "text";
 
 export type Direction = "up" | "down" | "left" | "right";
 
+export type LayerAction = "front" | "back" | "forward" | "backward";
+
 export type ShapeSize = "small" | "normal" | "large";
 
 export type PositionRegion =
@@ -70,6 +72,7 @@ export type DrawingCommand =
   | { type: "move"; target: TargetSpec; direction: Direction; distance?: number }
   | { type: "delete"; target: TargetSpec }
   | { type: "rename"; target: TargetSpec; name: string }
+  | { type: "layer"; target: TargetSpec; action: LayerAction }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "clear" }
