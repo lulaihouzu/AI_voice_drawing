@@ -1,5 +1,6 @@
 import type { AiCommandContext, AiCommandProvider, AiCommandResult } from "./types";
-import type { DrawingCommand } from "../commands/types";
+import { normalizeObjectName } from "../commands/objectNames";
+import type { DrawingCommand, PositionRegion, ShapeType, TargetQuery, TargetSpec } from "../commands/types";
 
 const mockProviderId = "mock-ai-command-provider";
 
@@ -30,7 +31,9 @@ export class MockAiCommandProvider implements AiCommandProvider {
     }
 
     if (isHighlightRequest(normalizedText)) {
-      if (!context.activeObjectId) {
+      const target = resolveHighlightTarget(normalizedText, context);
+
+      if (!target) {
         return failure("没有当前对象，无法生成强调当前对象的命令。", ["先说：画一个红色圆形", "再说：帮我强调当前图形"], true);
       }
 
@@ -38,9 +41,7 @@ export class MockAiCommandProvider implements AiCommandProvider {
         commands: [
           {
             type: "update",
-            target: {
-              ref: "active",
-            },
+            target,
             patch: {
               fill: "#facc15",
               stroke: "#111827",
@@ -48,9 +49,7 @@ export class MockAiCommandProvider implements AiCommandProvider {
           },
           {
             type: "layer",
-            target: {
-              ref: "active",
-            },
+            target,
             action: "front",
           },
         ],
@@ -139,7 +138,79 @@ function isThreeStepFlowRequest(text: string) {
 }
 
 function isHighlightRequest(text: string) {
-  return (text.includes("强调") || text.includes("高亮") || text.includes("突出")) && (text.includes("当前") || text.includes("这个") || text.includes("它"));
+  return text.includes("强调") || text.includes("高亮") || text.includes("突出");
+}
+
+function resolveHighlightTarget(text: string, context: AiCommandContext): TargetSpec | undefined {
+  const phrase = extractHighlightTargetPhrase(text);
+
+  if (!phrase || isGenericTargetPhrase(phrase)) {
+    return context.activeObjectId ? { ref: "active" } : undefined;
+  }
+
+  const query = extractTargetQuery(phrase);
+
+  if (query) {
+    return { ref: "query", query };
+  }
+
+  const name = normalizeObjectName(phrase);
+
+  return name ? { ref: "name", name } : undefined;
+}
+
+function extractHighlightTargetPhrase(text: string) {
+  const match = text.match(/(?:强调|高亮|突出)(.+)$/);
+
+  return match?.[1]?.replace(/^(一下子|一下|这个|那个|当前)/, "").trim();
+}
+
+function isGenericTargetPhrase(phrase: string) {
+  return /^(它|这个|那个|当前)?(图形|对象|形状|元素)?$/.test(phrase);
+}
+
+function extractTargetQuery(phrase: string): TargetQuery | undefined {
+  const shape = findTargetShape(phrase);
+  const region = findTargetRegion(phrase);
+  const sizeRank = findTargetSizeRank(phrase);
+
+  if (!shape && !region && !sizeRank) {
+    return undefined;
+  }
+
+  return {
+    shape,
+    region,
+    sizeRank,
+  };
+}
+
+function findTargetShape(phrase: string): ShapeType | undefined {
+  if (phrase.includes("圆")) return "circle";
+  if (phrase.includes("矩形") || phrase.includes("方框") || phrase.includes("方形")) return "rect";
+  if (phrase.includes("箭头")) return "arrow";
+  if (phrase.includes("文字") || phrase.includes("文本")) return "text";
+  if (phrase.includes("线")) return "line";
+  return undefined;
+}
+
+function findTargetRegion(phrase: string): PositionRegion | undefined {
+  if (phrase.includes("左上")) return "top-left";
+  if (phrase.includes("右上")) return "top-right";
+  if (phrase.includes("左下")) return "bottom-left";
+  if (phrase.includes("右下")) return "bottom-right";
+  if (phrase.includes("左边") || phrase.includes("左侧")) return "left";
+  if (phrase.includes("右边") || phrase.includes("右侧")) return "right";
+  if (phrase.includes("上方") || phrase.includes("上面")) return "top";
+  if (phrase.includes("下方") || phrase.includes("下面")) return "bottom";
+  if (phrase.includes("中间") || phrase.includes("中央")) return "center";
+  return undefined;
+}
+
+function findTargetSizeRank(phrase: string): TargetQuery["sizeRank"] | undefined {
+  if (phrase.includes("最大")) return "largest";
+  if (phrase.includes("最小")) return "smallest";
+  return undefined;
 }
 
 function normalizeInput(text: string) {

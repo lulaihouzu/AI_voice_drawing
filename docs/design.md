@@ -185,7 +185,7 @@ AI 解析服务仅作为规则链路外的拓展能力。当前 HTTP provider �
 - 画布执行：`tests/executor.test.ts`
 - 状态闭环：`tests/store.test.ts`
 - 导出序列化：`tests/export.test.ts`
-- AI provider 和 schema 校验：`tests/aiProvider.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`
+- AI provider、planner 和 schema 校验：`tests/aiProvider.test.ts`、`tests/aiPlanner.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`
 
 验证命令：
 
@@ -198,7 +198,7 @@ npm run build
 当前测试结果：
 
 - 安全审计：0 漏洞
-- 单元测试：7 个测试文件，66 个测试
+- 单元测试：8 个测试文件，70 个测试
 - 生产构建：通过
 
 ## 8. 原创与第三方边界
@@ -216,6 +216,7 @@ npm run build
 - AI 指令解析接口与 mock provider
 - AI 命令 schema allow-list 校验
 - HTTP AI provider、服务调用边界和失败反馈逻辑
+- AI 多轮澄清状态和复杂命令计划组织逻辑
 - 反馈和语音播报机制
 
 第三方依赖用途：
