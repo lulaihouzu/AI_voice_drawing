@@ -1,4 +1,5 @@
 import { CanvasView } from "./components/CanvasView";
+import { ExportController } from "./components/ExportController";
 import { FeedbackPanel } from "./components/FeedbackPanel";
 import { VoicePanel } from "./components/VoicePanel";
 import { useDrawingStore } from "./state/store";
@@ -9,6 +10,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      <ExportController />
       <header className="app-header">
         <div>
           <p className="app-kicker">AI Voice Drawing</p>

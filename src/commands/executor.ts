@@ -82,7 +82,7 @@ export function executeDrawingCommand(command: DrawingCommand, state: ExecutionS
     return {
       ...state,
       changed: false,
-      message: "导出模块将在后续实现。",
+      message: state.objects.length > 0 ? "正在导出 PNG 图片。" : "画布为空，无法导出图片。",
     };
   }
 

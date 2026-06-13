@@ -11,6 +11,7 @@ function resetStore() {
     voiceStatus: "idle",
     undoStack: [],
     redoStack: [],
+    pendingExport: undefined,
     feedback: [],
   });
 }
@@ -102,6 +103,57 @@ describe("useDrawingStore command loop", () => {
       ok: true,
       changed: true,
       message: "已重做。",
+    });
+  });
+
+  it("creates an export request for non-empty canvas", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画一个红色圆形");
+    const result = useDrawingStore.getState().runCommandText("导出为图片");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      exportRequested: true,
+      message: "正在导出 PNG 图片。",
+    });
+    expect(state.pendingExport).toMatchObject({
+      format: "png",
+      objects: [
+        {
+          type: "circle",
+        },
+      ],
+    });
+    expect(state.pendingExport?.filename).toMatch(/^ai-voice-drawing-\d{8}-\d{6}\.png$/);
+  });
+
+  it("does not create an export request for empty canvas", () => {
+    const result = useDrawingStore.getState().runCommandText("导出为图片");
+    const state = useDrawingStore.getState();
+
+    expect(result).toMatchObject({
+      ok: true,
+      changed: false,
+      exportRequested: false,
+      message: "画布为空，无法导出图片。",
+    });
+    expect(state.pendingExport).toBeUndefined();
+  });
+
+  it("clears pending export after completion feedback", () => {
+    const store = useDrawingStore.getState();
+
+    store.runCommandText("画一个蓝色矩形");
+    useDrawingStore.getState().runCommandText("导出为图片");
+    useDrawingStore.getState().completeExport("已导出 PNG 图片。", "success");
+
+    expect(useDrawingStore.getState().pendingExport).toBeUndefined();
+    expect(useDrawingStore.getState().feedback[0]).toMatchObject({
+      level: "success",
+      message: "已导出 PNG 图片。",
     });
   });
 });
