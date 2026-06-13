@@ -1,10 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { executeDrawingCommand, type ExecutionState } from "../src/commands/executor";
+import type { CanvasObject } from "../src/commands/types";
 
 function emptyState(): ExecutionState {
   return {
     objects: [],
     activeObjectId: undefined,
+  };
+}
+
+function object(id: string, x: number): CanvasObject {
+  return {
+    id,
+    type: "circle",
+    x,
+    y: 310,
+    radius: 48,
+    style: {
+      stroke: "#1f2937",
+      strokeWidth: 2,
+    },
+    createdAt: 1,
+    updatedAt: 1,
   };
 }
 
@@ -415,6 +432,113 @@ describe("executeDrawingCommand", () => {
       changed: false,
       message: "没有找到符合“左边圆形”的对象，无法移动。",
     });
+  });
+
+  it("reorders objects by layer commands", () => {
+    const state: ExecutionState = {
+      objects: [object("bottom", 240), object("middle", 480), object("top", 720)],
+      activeObjectId: "middle",
+    };
+    const forward = executeDrawingCommand(
+      {
+        type: "layer",
+        target: {
+          ref: "active",
+        },
+        action: "forward",
+      },
+      state,
+    );
+    const front = executeDrawingCommand(
+      {
+        type: "layer",
+        target: {
+          ref: "name",
+          name: "bottom",
+        },
+        action: "front",
+      },
+      {
+        ...forward,
+        objects: forward.objects.map((canvasObject) =>
+          canvasObject.id === "bottom" ? { ...canvasObject, name: "bottom" } : canvasObject,
+        ),
+      },
+    );
+    const back = executeDrawingCommand(
+      {
+        type: "layer",
+        target: {
+          ref: "active",
+        },
+        action: "back",
+      },
+      front,
+    );
+
+    expect(forward).toMatchObject({
+      changed: true,
+      activeObjectId: "middle",
+      message: "已上移一层。",
+    });
+    expect(forward.objects.map((canvasObject) => canvasObject.id)).toEqual(["bottom", "top", "middle"]);
+    expect(front).toMatchObject({
+      changed: true,
+      activeObjectId: "bottom",
+      message: "已将图形置于顶层。",
+    });
+    expect(front.objects.map((canvasObject) => canvasObject.id)).toEqual(["top", "middle", "bottom"]);
+    expect(back).toMatchObject({
+      changed: true,
+      activeObjectId: "bottom",
+      message: "已将图形置于底层。",
+    });
+    expect(back.objects.map((canvasObject) => canvasObject.id)).toEqual(["bottom", "top", "middle"]);
+  });
+
+  it("reports layer boundaries without changing order", () => {
+    const state: ExecutionState = {
+      objects: [object("bottom", 240), object("top", 720)],
+      activeObjectId: "top",
+    };
+    const alreadyTop = executeDrawingCommand(
+      {
+        type: "layer",
+        target: {
+          ref: "active",
+        },
+        action: "forward",
+      },
+      state,
+    );
+    const alreadyBottom = executeDrawingCommand(
+      {
+        type: "layer",
+        target: {
+          ref: "name",
+          name: "bottom",
+        },
+        action: "back",
+      },
+      {
+        ...state,
+        objects: state.objects.map((canvasObject) =>
+          canvasObject.id === "bottom" ? { ...canvasObject, name: "bottom" } : canvasObject,
+        ),
+      },
+    );
+
+    expect(alreadyTop).toMatchObject({
+      changed: false,
+      message: "图形已经在顶层。",
+    });
+    expect(alreadyTop.objects.map((canvasObject) => canvasObject.id)).toEqual(["bottom", "top"]);
+    expect(alreadyBottom).toMatchObject({
+      changed: false,
+      activeObjectId: "bottom",
+      message: "图形已经在底层。",
+    });
+    expect(alreadyBottom.objects.map((canvasObject) => canvasObject.id)).toEqual(["bottom", "top"]);
   });
 
   it("updates, moves, deletes, and clears objects", () => {

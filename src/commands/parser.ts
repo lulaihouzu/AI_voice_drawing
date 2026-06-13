@@ -2,6 +2,7 @@ import type {
   ConnectionSpec,
   Direction,
   DrawingCommand,
+  LayerAction,
   ParseResult,
   PositionRegion,
   ShapeSize,
@@ -11,7 +12,7 @@ import type {
 } from "./types";
 import { isActiveReference, normalizeObjectName } from "./objectNames";
 
-const suggestions = ["画一个红色圆形", "把它命名为开始", "保存工程", "加载工程", "导出为 JSON"];
+const suggestions = ["画一个红色圆形", "把它命名为开始", "把它置顶", "保存工程", "导出为 JSON"];
 
 const colorMap: Array<[string, string]> = [
   ["红色", "#ef4444"],
@@ -65,6 +66,48 @@ const shapeKeywords: Array<[ShapeType, string[]]> = [
   ["circle", ["圆形", "圆", "圈"]],
   ["rect", ["矩形", "长方形", "方形", "方块", "方框", "框"]],
   ["line", ["直线", "线条", "线"]],
+];
+
+const layerActionKeywords = [
+  "移动到最上层",
+  "移到最上层",
+  "放到最上层",
+  "放在最上层",
+  "移动到最前面",
+  "移到最前面",
+  "放到最前面",
+  "放在最前面",
+  "移动到顶层",
+  "移到顶层",
+  "放到顶层",
+  "放在顶层",
+  "提到最前面",
+  "置顶",
+  "前置",
+  "移动到最下层",
+  "移到最下层",
+  "放到最下层",
+  "放在最下层",
+  "移动到最后面",
+  "移到最后面",
+  "放到最后面",
+  "放在最后面",
+  "移动到底层",
+  "移到底层",
+  "放到底层",
+  "放在底层",
+  "置底",
+  "后置",
+  "上移一层",
+  "前移一层",
+  "提升一层",
+  "向上一层",
+  "往上一层",
+  "下移一层",
+  "后移一层",
+  "降低一层",
+  "向下一层",
+  "往下一层",
 ];
 
 export function parseCommand(rawText: string): ParseResult {
@@ -128,6 +171,12 @@ function parseSingleClause(text: string, rawText: string): ParseResult {
 
   if (text.includes("删除") || text.includes("删掉") || text.includes("移除") || text.includes("去掉")) {
     return ok(rawText, [{ type: "delete", target: extractDeleteTarget(text) }]);
+  }
+
+  const layerAction = findLayerAction(text);
+
+  if (layerAction) {
+    return ok(rawText, [{ type: "layer", target: extractLayerTarget(text), action: layerAction }]);
   }
 
   const color = findColor(text);
@@ -223,6 +272,50 @@ function isProjectLoadLike(text: string) {
   return text.includes("加载工程") || text.includes("加载项目") || text.includes("恢复工程") || text.includes("恢复项目") || text.includes("打开工程") || text.includes("打开项目");
 }
 
+function findLayerAction(text: string): LayerAction | undefined {
+  if (
+    text.includes("置顶") ||
+    text.includes("前置") ||
+    text.includes("最上层") ||
+    text.includes("最前面") ||
+    text.includes("顶层")
+  ) {
+    return "front";
+  }
+
+  if (
+    text.includes("置底") ||
+    text.includes("后置") ||
+    text.includes("最下层") ||
+    text.includes("最后面") ||
+    text.includes("底层")
+  ) {
+    return "back";
+  }
+
+  if (
+    text.includes("上移一层") ||
+    text.includes("前移一层") ||
+    text.includes("提升一层") ||
+    text.includes("向上一层") ||
+    text.includes("往上一层")
+  ) {
+    return "forward";
+  }
+
+  if (
+    text.includes("下移一层") ||
+    text.includes("后移一层") ||
+    text.includes("降低一层") ||
+    text.includes("向下一层") ||
+    text.includes("往下一层")
+  ) {
+    return "backward";
+  }
+
+  return undefined;
+}
+
 function extractRenameName(text: string) {
   const match = text.match(/(?:命名为|取名为|改名为|叫做|名字叫|名为)(.+)$/);
 
@@ -237,6 +330,13 @@ function extractRenameTarget(text: string): TargetSpec {
 
 function extractDeleteTarget(text: string): TargetSpec {
   const match = text.match(/(?:删除|删掉|移除|去掉)(.+)$/);
+
+  return toTarget(match?.[1]);
+}
+
+function extractLayerTarget(text: string): TargetSpec {
+  const actionPattern = layerActionKeywords.map(escapeRegExp).join("|");
+  const match = text.match(new RegExp(`^(?:把|将|让|给)?(.+?)(?:${actionPattern})`));
 
   return toTarget(match?.[1]);
 }
@@ -417,6 +517,10 @@ function normalizeText(rawText: string) {
     .replace(/\s+/g, "")
     .replace(/[，。！？、,.!?；;]/g, "")
     .replace(/^(请|帮我|请帮我|麻烦你|麻烦)/, "");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function extractText(text: string) {

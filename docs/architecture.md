@@ -67,7 +67,7 @@ type SpeechResult = {
 
 职责：
 
-- 识别用户意图，例如创建、修改、移动、删除、导出、保存、加载
+- 识别用户意图，例如创建、修改、移动、调整层级、删除、导出、保存、加载
 - 提取参数，例如图形类型、颜色、位置、大小、方向
 - 将自然语言转换为结构化命令
 - 对无法理解的指令返回错误原因
@@ -77,7 +77,7 @@ MVP 阶段采用规则解析：
 - 图形词典：圆形、圆、矩形、方框、线、直线、箭头、文字
 - 颜色词典：红色、蓝色、绿色、黄色、黑色、白色
 - 位置词典：中间、左边、右边、上方、下方、左上角、右下角
-- 动作词典：画、创建、改成、移动、删除、撤销、重做、清空、导出、保存、加载
+- 动作词典：画、创建、改成、移动、置顶、置底、前移、后移、删除、撤销、重做、清空、导出、保存、加载
 
 后续可增加语义解析适配器：
 
@@ -122,6 +122,7 @@ type DrawingCommand =
   | { type: "update"; target: TargetSpec; patch: ShapePatch }
   | { type: "move"; target: TargetSpec; direction: Direction; distance?: number }
   | { type: "delete"; target: TargetSpec }
+  | { type: "layer"; target: TargetSpec; action: "front" | "back" | "forward" | "backward" }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "clear" }
@@ -401,6 +402,7 @@ npm install
 - `createText`
 - `updateObject`
 - `moveObject`
+- `reorderObject`
 - `deleteObject`
 - `clearCanvas`
 - `exportPng`
@@ -419,6 +421,8 @@ MVP 当前支持以下高频指令：
 - “画一个蓝色矩形”
 - “把它改成绿色”
 - “把它向右移动一点”
+- “把它置顶”
+- “把左边那个圆上移一层”
 - “删除它”
 - “撤销”
 - “重做”
@@ -469,6 +473,7 @@ speechInput.onResult((text) => {
 - 测试中文指令解析
 - 测试上下文引用
 - 测试撤销重做
+- 测试图层顺序调整
 - 测试导出功能
 
 ## 10. 如何运行
@@ -535,7 +540,8 @@ MVP 依赖浏览器语音识别能力，建议优先使用 Chrome 或 Edge 进�
 - 已增加按位置、类型和尺寸定位对象的能力，例如左边圆形、右边圆形、最大矩形。
 - 已增加 SVG 文件导出能力。
 - 已增加 JSON 工程文件导出和浏览器本地工程保存/加载能力。
-- 增加图层顺序调整和对象树，为复杂画布管理做准备。
+- 已增加图层顺序调整能力，支持置顶、置底、上移一层和下移一层。
+- 后续增加图层面板和对象树，为复杂画布管理做准备。
 - 增加模板系统，例如流程图节点、判断节点和思维导图节点。
 
 ### 12.2 AI 指令理解
