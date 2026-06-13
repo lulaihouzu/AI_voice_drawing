@@ -300,6 +300,123 @@ describe("executeDrawingCommand", () => {
     });
   });
 
+  it("resolves position and size based target queries", () => {
+    const leftCircle = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        position: {
+          region: "left",
+        },
+      },
+      emptyState(),
+    );
+    const rightCircle = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        position: {
+          region: "right",
+        },
+      },
+      leftCircle,
+    );
+    const smallRect = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+        size: "small",
+        position: {
+          region: "top",
+        },
+      },
+      rightCircle,
+    );
+    const largeRect = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+        size: "large",
+        position: {
+          region: "bottom",
+        },
+      },
+      smallRect,
+    );
+    const updated = executeDrawingCommand(
+      {
+        type: "update",
+        target: {
+          ref: "query",
+          query: {
+            region: "left",
+            shape: "circle",
+          },
+        },
+        patch: {
+          fill: "#16a34a",
+        },
+      },
+      largeRect,
+    );
+    const movedLargest = executeDrawingCommand(
+      {
+        type: "move",
+        target: {
+          ref: "query",
+          query: {
+            shape: "rect",
+            sizeRank: "largest",
+          },
+        },
+        direction: "right",
+        distance: 36,
+      },
+      updated,
+    );
+    const deletedRight = executeDrawingCommand(
+      {
+        type: "delete",
+        target: {
+          ref: "query",
+          query: {
+            region: "right",
+            shape: "circle",
+          },
+        },
+      },
+      movedLargest,
+    );
+
+    expect(updated.objects[0].style.fill).toBe("#16a34a");
+    expect(updated.objects[1].style.fill).toBeUndefined();
+    expect(movedLargest.objects[3].x).toBe(516);
+    expect(deletedRight.objects).toHaveLength(3);
+    expect(deletedRight.objects.some((object) => object.id === rightCircle.objects[1].id)).toBe(false);
+  });
+
+  it("reports missing query targets", () => {
+    const result = executeDrawingCommand(
+      {
+        type: "move",
+        target: {
+          ref: "query",
+          query: {
+            region: "left",
+            shape: "circle",
+          },
+        },
+        direction: "right",
+      },
+      emptyState(),
+    );
+
+    expect(result).toMatchObject({
+      changed: false,
+      message: "没有找到符合“左边圆形”的对象，无法移动。",
+    });
+  });
+
   it("updates, moves, deletes, and clears objects", () => {
     const created = executeDrawingCommand(
       {
