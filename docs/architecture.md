@@ -224,7 +224,7 @@ type AppState = {
 - `HttpAiCommandProvider`：通过 HTTP POST 调用后端代理或本地 AI 服务，自动处理超时、HTTP 错误、非法 JSON 和 schema 校验失败。
 - `createConfiguredAiCommandProvider`：从 `VITE_AI_COMMAND_ENDPOINT` 读取服务地址，避免把模型 API key 放进前端包。
 - `AiCommandPlanner`：封装 provider 调用结果，保存待澄清问题，用户补充后重新生成结构化命令计划。
-- AI 输出暂不接入自动执行链路，真实执行前必须先通过命令 schema 校验。
+- `runVoiceCommandText`：规则解析失败且 AI 解析开启时进入 planner；AI 命令计划需要语音确认后才执行。
 
 ## 5. 指令执行机制
 
@@ -510,6 +510,7 @@ speechInput.onResult((text) => {
 - 测试 AI mock provider 的命令计划和失败反馈
 - 测试 AI 命令 schema 校验和 HTTP AI provider 的服务调用、失败降级
 - 测试 AI command planner 的复杂命令计划、待澄清状态和用户回答补全
+- 测试 AI 解析开关、语音开关指令、AI fallback 和确认执行入口
 
 ### 9.8 AI 适配器
 
@@ -524,7 +525,7 @@ speechInput.onResult((text) => {
 - `createConfiguredAiCommandProvider`：读取 `import.meta.env.VITE_AI_COMMAND_ENDPOINT` 创建 HTTP provider。
 - `AiCommandPlanner`：把 provider 成功结果整理为可确认的命令计划；遇到“没有当前对象”等可补充失败时生成 `AiClarification`，等待用户下一句语音补全。
 
-HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。当前阶段只生成并校验命令草案，不自动执行。后续真实模型接入也必须复用同一校验器，避免非法结构进入执行器。
+HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器。
 
 ## 10. 如何运行
 
@@ -651,6 +652,7 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 - 已增加 `validateDrawingCommands` 命令 schema 校验器。
 - 已增加 `HttpAiCommandProvider` 和 `VITE_AI_COMMAND_ENDPOINT` 配置入口，用于对接后端代理或本地 AI 服务。
 - 已增加 `AiCommandPlanner`，支持复杂命令计划和多轮澄清状态。
+- 已增加 AI 解析开关、语音开关指令、待确认计划和前端执行入口。
 - AI 输出必须经过命令 schema 校验。
 - 测试环境默认使用 mock provider。
 - 真实模型调用应通过后端代理或本地服务注入密钥，不把 API key 打包进前端。

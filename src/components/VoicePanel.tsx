@@ -4,21 +4,28 @@ import { SpeechInput } from "../speech/SpeechInput";
 import { useDrawingStore } from "../state/store";
 
 export function VoicePanel() {
-  const runCommandText = useDrawingStore((state) => state.runCommandText);
+  const runVoiceCommandText = useDrawingStore((state) => state.runVoiceCommandText);
   const addFeedback = useDrawingStore((state) => state.addFeedback);
   const setInterimTranscript = useDrawingStore((state) => state.setInterimTranscript);
   const setVoiceStatus = useDrawingStore((state) => state.setVoiceStatus);
+  const setAiEnabled = useDrawingStore((state) => state.setAiEnabled);
   const voiceStatus = useDrawingStore((state) => state.voiceStatus);
+  const aiEnabled = useDrawingStore((state) => state.aiEnabled);
+  const aiStatus = useDrawingStore((state) => state.aiStatus);
   const speechInputRef = useRef<SpeechInput | null>(null);
   const isSupported = useMemo(() => SpeechInput.isSupported(), []);
+
+  async function handleFinalTranscript(text: string) {
+    const runResult = await runVoiceCommandText(text);
+    speakFeedback(runResult.message);
+  }
 
   function getSpeechInput() {
     if (!speechInputRef.current) {
       speechInputRef.current = new SpeechInput({
         onResult: (result) => {
           if (result.isFinal && result.text.trim()) {
-            const runResult = runCommandText(result.text);
-            speakFeedback(runResult.message);
+            void handleFinalTranscript(result.text);
             return;
           }
 
@@ -79,11 +86,17 @@ export function VoicePanel() {
 
       <div className="voice-state">
         <span className={`voice-pill status-${voiceStatus}`}>{getVoiceStatusLabel(voiceStatus)}</span>
+        <span className={`voice-pill ai-status-${aiStatus}`}>{getAiStatusLabel(aiStatus)}</span>
         <span className="voice-audio">
           <Volume2 aria-hidden="true" size={16} />
           反馈播报
         </span>
       </div>
+
+      <label className="ai-toggle">
+        <input type="checkbox" checked={aiEnabled} onChange={(event) => setAiEnabled(event.currentTarget.checked)} />
+        <span>AI 解析</span>
+      </label>
     </section>
   );
 }
@@ -114,4 +127,28 @@ function getVoiceStatusLabel(status: ReturnType<typeof useDrawingStore.getState>
   }
 
   return "待机";
+}
+
+function getAiStatusLabel(status: ReturnType<typeof useDrawingStore.getState>["aiStatus"]) {
+  if (status === "planning") {
+    return "AI 解析中";
+  }
+
+  if (status === "waiting-clarification") {
+    return "AI 待补充";
+  }
+
+  if (status === "waiting-confirmation") {
+    return "AI 待确认";
+  }
+
+  if (status === "error") {
+    return "AI 异常";
+  }
+
+  if (status === "off") {
+    return "AI 关闭";
+  }
+
+  return "AI 就绪";
 }
