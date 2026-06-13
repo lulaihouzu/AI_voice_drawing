@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { StateCreator } from "zustand";
+import { createCanvasExportRequest, type CanvasExportRequest } from "../canvas/export";
 import { executeDrawingCommand } from "../commands/executor";
 import { normalizeCommands } from "../commands/normalizer";
 import { parseCommand } from "../commands/parser";
@@ -12,6 +13,7 @@ export type CommandRunResult = {
   message: string;
   level: FeedbackLevel;
   commandCount: number;
+  exportRequested?: boolean;
 };
 
 type DrawingState = {
@@ -23,9 +25,11 @@ type DrawingState = {
   voiceStatus: SpeechStatus;
   undoStack: CanvasSnapshot[];
   redoStack: CanvasSnapshot[];
+  pendingExport?: CanvasExportRequest;
   feedback: FeedbackMessage[];
   runCommandText: (text: string) => CommandRunResult;
   addFeedback: (message: string, level?: FeedbackLevel) => void;
+  completeExport: (message: string, level: FeedbackLevel) => void;
   setInterimTranscript: (text: string) => void;
   setVoiceStatus: (status: SpeechStatus) => void;
 };
@@ -39,6 +43,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
   voiceStatus: "idle",
   undoStack: [],
   redoStack: [],
+  pendingExport: undefined,
   feedback: [createFeedback("工作台已就绪。", "info")],
 
   runCommandText: (text) => {
@@ -81,6 +86,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
     let nextActiveObjectId = currentState.activeObjectId;
     let changed = false;
     let message = "指令已执行。";
+    let pendingExport: CanvasExportRequest | undefined;
 
     commands.forEach((command) => {
       const result = executeDrawingCommand(command, {
@@ -92,9 +98,14 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       nextActiveObjectId = result.activeObjectId;
       changed = changed || result.changed;
       message = result.message;
+
+      if (command.type === "export" && nextObjects.length > 0) {
+        pendingExport = createCanvasExportRequest(nextObjects);
+      }
     });
 
-    const feedbackMessage = changed && commands.length > 1 ? `已执行 ${commands.length} 个操作。` : message;
+    const feedbackMessage =
+      changed && commands.length > 1 && !pendingExport ? `已执行 ${commands.length} 个操作。` : message;
     const feedbackLevel: FeedbackLevel = changed ? "success" : "info";
 
     set((state) => ({
@@ -103,6 +114,7 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       lastCreatedObjectId: nextActiveObjectId,
       undoStack: changed ? [...state.undoStack, before] : state.undoStack,
       redoStack: changed ? [] : state.redoStack,
+      pendingExport,
       feedback: [createFeedback(feedbackMessage, feedbackLevel), ...state.feedback].slice(0, 6),
     }));
 
@@ -112,11 +124,19 @@ export const useDrawingStore = create<DrawingState>((set, get) => ({
       message: feedbackMessage,
       level: feedbackLevel,
       commandCount: commands.length,
+      exportRequested: Boolean(pendingExport),
     };
   },
 
   addFeedback: (message, level = "info") => {
     set((state) => ({
+      feedback: [createFeedback(message, level), ...state.feedback].slice(0, 6),
+    }));
+  },
+
+  completeExport: (message, level) => {
+    set((state) => ({
+      pendingExport: undefined,
       feedback: [createFeedback(message, level), ...state.feedback].slice(0, 6),
     }));
   },
