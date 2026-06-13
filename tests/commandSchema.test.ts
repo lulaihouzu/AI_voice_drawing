@@ -24,7 +24,7 @@ describe("validateDrawingCommands", () => {
       throw new Error(validation.errors[0].message);
     }
 
-    expect(validation.commands).toHaveLength(4);
+    expect(validation.commands).toHaveLength(5);
     expect(validation.commands[0]).toMatchObject({
       type: "create",
       shape: "text",

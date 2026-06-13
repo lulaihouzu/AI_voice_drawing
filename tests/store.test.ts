@@ -153,11 +153,11 @@ describe("useDrawingStore command loop", () => {
       changed: false,
       source: "ai",
       awaitingConfirmation: true,
-      commandCount: 4,
+      commandCount: 5,
     });
     expect(plannedState.aiStatus).toBe("waiting-confirmation");
     expect(plannedState.pendingAiPlan).toMatchObject({
-      commandCount: 4,
+      commandCount: 5,
       resolvedText: "帮我生成一个用户登录流程图",
     });
     expect(plannedState.objects).toHaveLength(0);
@@ -169,12 +169,50 @@ describe("useDrawingStore command loop", () => {
       ok: true,
       changed: true,
       source: "ai",
-      message: "AI 已执行 4 个操作。",
-      commandCount: 4,
+      message: "AI 已执行 5 个操作。",
+      commandCount: 5,
     });
     expect(confirmedState.aiStatus).toBe("idle");
     expect(confirmedState.pendingAiPlan).toBeUndefined();
-    expect(confirmedState.objects).toHaveLength(4);
+    expect(confirmedState.objects).toHaveLength(5);
+  });
+
+  it("creates a one sentence order diagram through the AI voice flow", async () => {
+    const store = useDrawingStore.getState();
+
+    store.setAiEnabled(true);
+    const planResult = await useDrawingStore.getState().runVoiceCommandText("帮我生成一个订单支付流程图");
+    const plannedState = useDrawingStore.getState();
+
+    expect(planResult).toMatchObject({
+      ok: true,
+      changed: false,
+      source: "ai",
+      awaitingConfirmation: true,
+      commandCount: 7,
+    });
+    expect(plannedState.pendingAiPlan).toMatchObject({
+      commandCount: 7,
+      resolvedText: "帮我生成一个订单支付流程图",
+    });
+
+    const confirmResult = await useDrawingStore.getState().runVoiceCommandText("确认执行");
+    const confirmedState = useDrawingStore.getState();
+
+    expect(confirmResult).toMatchObject({
+      ok: true,
+      changed: true,
+      source: "ai",
+      message: "AI 已执行 7 个操作。",
+      commandCount: 7,
+    });
+    expect(confirmedState.objects).toHaveLength(7);
+    expect(confirmedState.objects.filter((object) => object.type === "text").map((object) => object.text)).toEqual([
+      "选择商品",
+      "提交订单",
+      "完成支付",
+      "等待发货",
+    ]);
   });
 
   it("asks for clarification and resolves it before AI confirmation", async () => {

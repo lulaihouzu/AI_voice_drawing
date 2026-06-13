@@ -21,7 +21,7 @@ describe("MockAiCommandProvider", () => {
       throw new Error(result.reason);
     }
 
-    expect(result.commands).toHaveLength(4);
+    expect(result.commands).toHaveLength(5);
     expect(result.commands[0]).toMatchObject({
       type: "create",
       shape: "text",
@@ -30,12 +30,16 @@ describe("MockAiCommandProvider", () => {
         region: "left",
       },
     });
-    expect(result.commands[3]).toMatchObject({
+    expect(result.commands[2]).toMatchObject({
       type: "create",
       shape: "arrow",
       connection: {
         mode: "connect",
       },
+    });
+    expect(result.commands[4]).toMatchObject({
+      type: "create",
+      shape: "arrow",
     });
   });
 
@@ -50,11 +54,36 @@ describe("MockAiCommandProvider", () => {
     }
 
     expect(result.explanation).toContain("三步流程图");
-    expect(result.commands.map((command) => command.type)).toEqual(["create", "create", "create", "create"]);
-    expect(result.commands[2]).toMatchObject({
+    expect(result.commands).toHaveLength(5);
+    expect(result.commands.map((command) => command.type)).toEqual(["create", "create", "create", "create", "create"]);
+    expect(result.commands[3]).toMatchObject({
       type: "create",
       text: "第三步",
     });
+  });
+
+  it("creates a topic-specific one sentence diagram", async () => {
+    const provider = createMockAiCommandProvider();
+    const result = await provider.parseCommand("帮我生成一个订单支付流程图", emptyContext);
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+
+    expect(result.explanation).toContain("订单支付流程图");
+    expect(result.commands).toHaveLength(7);
+    const nodeTexts = result.commands.flatMap((command) => {
+      if (command.type === "create" && command.shape === "text") {
+        return [command.text];
+      }
+
+      return [];
+    });
+
+    expect(nodeTexts).toEqual(["选择商品", "提交订单", "完成支付", "等待发货"]);
+    expect(result.commands.filter((command) => command.type === "create" && command.shape === "arrow")).toHaveLength(3);
   });
 
   it("creates highlight commands when an active object exists", async () => {
@@ -117,5 +146,6 @@ describe("MockAiCommandProvider", () => {
     }
 
     expect(result.suggestions).toContain("生成一个用户登录流程图");
+    expect(result.suggestions).toContain("生成一个订单支付流程图");
   });
 });

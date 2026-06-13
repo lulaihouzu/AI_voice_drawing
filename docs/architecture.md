@@ -219,7 +219,7 @@ type AppState = {
 当前实现：
 
 - `MockAiCommandProvider`：本地 deterministic mock，不请求网络，不需要 API key。
-- mock 场景覆盖用户登录流程图、三步流程图、强调当前图形。
+- mock 场景覆盖用户登录、注册、订单支付、客服工单、审批、项目发布、三步流程图和强调当前图形。
 - `validateDrawingCommands`：对 AI 命令草案做 allow-list 校验、字段清洗和错误反馈。
 - `HttpAiCommandProvider`：通过 HTTP POST 调用后端代理或本地 AI 服务，自动处理超时、HTTP 错误、非法 JSON 和 schema 校验失败。
 - `createConfiguredAiCommandProvider`：从 `VITE_AI_COMMAND_ENDPOINT` 读取服务地址，避免把模型 API key 放进前端包。
@@ -511,6 +511,7 @@ speechInput.onResult((text) => {
 - 测试 AI 命令 schema 校验和 HTTP AI provider 的服务调用、失败降级
 - 测试 AI command planner 的复杂命令计划、待澄清状态和用户回答补全
 - 测试 AI 解析开关、语音开关指令、AI fallback 和确认执行入口
+- 测试一句话主题图示模板生成和 AI 语音确认执行闭环
 
 ### 9.8 AI 适配器
 
@@ -520,6 +521,7 @@ speechInput.onResult((text) => {
 - `AiCommandContext`：传递画布对象、当前对象和最近对象等上下文。
 - `AiCommandResult`：区分成功命令草案与失败反馈。
 - `MockAiCommandProvider`：测试和演示用 provider，不访问真实模型。
+- `MockAiCommandProvider` 内置主题模板，支持将“生成订单支付流程图”等一句话转换为顺序节点和连接箭头。
 - `validateDrawingCommands`：校验未知 JSON 是否为合法 `DrawingCommand[]`，并返回清洗后的命令数组。
 - `HttpAiCommandProvider`：向配置的 AI 解析服务发送 `{ text, context }`，并把服务响应转换为统一的 `AiCommandResult`。
 - `createConfiguredAiCommandProvider`：读取 `import.meta.env.VITE_AI_COMMAND_ENDPOINT` 创建 HTTP provider。
@@ -653,6 +655,7 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 - 已增加 `HttpAiCommandProvider` 和 `VITE_AI_COMMAND_ENDPOINT` 配置入口，用于对接后端代理或本地 AI 服务。
 - 已增加 `AiCommandPlanner`，支持复杂命令计划和多轮澄清状态。
 - 已增加 AI 解析开关、语音开关指令、待确认计划和前端执行入口。
+- 已增加一句话生成图示基础模板，mock provider 可生成多类流程图命令计划。
 - AI 输出必须经过命令 schema 校验。
 - 测试环境默认使用 mock provider。
 - 真实模型调用应通过后端代理或本地服务注入密钥，不把 API key 打包进前端。
