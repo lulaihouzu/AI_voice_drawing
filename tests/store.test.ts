@@ -153,11 +153,11 @@ describe("useDrawingStore command loop", () => {
       changed: false,
       source: "ai",
       awaitingConfirmation: true,
-      commandCount: 5,
+      commandCount: 8,
     });
     expect(plannedState.aiStatus).toBe("waiting-confirmation");
     expect(plannedState.pendingAiPlan).toMatchObject({
-      commandCount: 5,
+      commandCount: 8,
       resolvedText: "帮我生成一个用户登录流程图",
     });
     expect(plannedState.objects).toHaveLength(0);
@@ -169,12 +169,18 @@ describe("useDrawingStore command loop", () => {
       ok: true,
       changed: true,
       source: "ai",
-      message: "AI 已执行 5 个操作。",
-      commandCount: 5,
+      message: "AI 已执行 8 个操作。",
+      commandCount: 8,
     });
     expect(confirmedState.aiStatus).toBe("idle");
     expect(confirmedState.pendingAiPlan).toBeUndefined();
-    expect(confirmedState.objects).toHaveLength(5);
+    expect(confirmedState.objects).toHaveLength(8);
+    expect(confirmedState.objects.filter((object) => object.type === "rect")).toHaveLength(3);
+    expect(confirmedState.objects.filter((object) => object.type === "text").map((object) => object.text)).toEqual([
+      "输入账号",
+      "校验身份",
+      "进入系统",
+    ]);
   });
 
   it("creates a one sentence order diagram through the AI voice flow", async () => {
@@ -189,10 +195,10 @@ describe("useDrawingStore command loop", () => {
       changed: false,
       source: "ai",
       awaitingConfirmation: true,
-      commandCount: 7,
+      commandCount: 11,
     });
     expect(plannedState.pendingAiPlan).toMatchObject({
-      commandCount: 7,
+      commandCount: 11,
       resolvedText: "帮我生成一个订单支付流程图",
     });
 
@@ -203,10 +209,11 @@ describe("useDrawingStore command loop", () => {
       ok: true,
       changed: true,
       source: "ai",
-      message: "AI 已执行 7 个操作。",
-      commandCount: 7,
+      message: "AI 已执行 11 个操作。",
+      commandCount: 11,
     });
-    expect(confirmedState.objects).toHaveLength(7);
+    expect(confirmedState.objects).toHaveLength(11);
+    expect(confirmedState.objects.filter((object) => object.type === "rect")).toHaveLength(4);
     expect(confirmedState.objects.filter((object) => object.type === "text").map((object) => object.text)).toEqual([
       "选择商品",
       "提交订单",

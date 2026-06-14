@@ -1,4 +1,5 @@
 import type { DrawingCommand } from "../commands/types";
+import { createDiagramTemplatePlan } from "./diagramTemplates";
 import type { AiCommandContext, AiCommandFailure, AiCommandProvider, AiCommandSuccess, AiInsightSuccess } from "./types";
 
 export type AiClarification = {
@@ -77,6 +78,21 @@ export class AiCommandPlanner {
 
     if (this.pendingClarification) {
       return this.resolvePendingClarification(normalizedText, context);
+    }
+
+    const templatePlan = createDiagramTemplatePlan(normalizedText);
+
+    if (templatePlan) {
+      return {
+        status: "ready",
+        providerId: "local-diagram-template",
+        commands: templatePlan.commands,
+        commandCount: templatePlan.commands.length,
+        explanation: `生成${templatePlan.title}草案。`,
+        confidence: templatePlan.confidence,
+        requiresConfirmation: true,
+        resolvedText: normalizedText,
+      };
     }
 
     const result = await this.provider.parseCommand(normalizedText, context);

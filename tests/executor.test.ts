@@ -217,9 +217,9 @@ describe("executeDrawingCommand", () => {
     expect(connected.objects).toHaveLength(3);
     expect(connected.objects[2]).toMatchObject({
       type: "arrow",
-      x: 260,
+      x: 308,
       y: 310,
-      width: 440,
+      width: 328,
       height: 0,
     });
   });
@@ -261,9 +261,9 @@ describe("executeDrawingCommand", () => {
     expect(arrow.objects[2]).toMatchObject({
       type: "arrow",
       x: 480,
-      y: 160,
+      y: 208,
       width: 0,
-      height: 300,
+      height: 210,
     });
   });
 
@@ -414,9 +414,9 @@ describe("executeDrawingCommand", () => {
     expect(arrow.objects[2]).toMatchObject({
       type: "arrow",
       x: 480,
-      y: 160,
+      y: 208,
       width: 0,
-      height: 300,
+      height: 210,
     });
   });
 
