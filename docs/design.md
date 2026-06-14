@@ -128,7 +128,7 @@ SpeechInput
 ```ts
 type CanvasObject = {
   id: string;
-  type: "circle" | "rect" | "line" | "arrow" | "text";
+  type: "circle" | "rect" | "triangle" | "line" | "arrow" | "text";
   x: number;
   y: number;
   width?: number;
@@ -200,7 +200,7 @@ npm run build
 当前测试结果：
 
 - 安全审计：0 漏洞
-- 单元测试：10 个测试文件，95 个测试
+- 单元测试：10 个测试文件，98 个测试
 - 生产构建：通过
 
 ## 8. 原创与第三方边界

@@ -145,7 +145,7 @@ type DrawingCommand =
 ```ts
 type CanvasObject = {
   id: string;
-  type: "circle" | "rect" | "line" | "arrow" | "text";
+  type: "circle" | "rect" | "triangle" | "line" | "arrow" | "text";
   x: number;
   y: number;
   width?: number;

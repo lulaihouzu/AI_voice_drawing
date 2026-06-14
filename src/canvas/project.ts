@@ -9,7 +9,7 @@ export type CanvasProject = {
   activeObjectId?: string;
 };
 
-const shapeTypes: ShapeType[] = ["circle", "rect", "line", "arrow", "text"];
+const shapeTypes: ShapeType[] = ["circle", "rect", "triangle", "line", "arrow", "text"];
 
 export function createCanvasProject(objects: CanvasObject[], activeObjectId?: string): CanvasProject {
   return {

@@ -33,6 +33,7 @@ describe("DeepSeek AI proxy", () => {
       stream: false,
     });
     expect(body.messages[0].content).toContain("只能输出 JSON");
+    expect(body.messages[0].content).toContain("triangle");
     expect(body.messages[1].content).toContain("帮我生成一个用户登录流程图");
   });
 

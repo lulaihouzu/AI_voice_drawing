@@ -1,4 +1,15 @@
-import type { CanvasObject, ConnectionSpec, DrawingCommand, PositionRegion, ShapeSize, ShapeType } from "../commands/types";
+import { resolveTargetQuery } from "../commands/targetQueries";
+import type {
+  CanvasObject,
+  ConnectionSpec,
+  Direction,
+  DrawingCommand,
+  PositionRegion,
+  PositionSpec,
+  ShapeSize,
+  ShapeType,
+  TargetSpec,
+} from "../commands/types";
 import { normalizeObjectName } from "../commands/objectNames";
 
 const positionMap: Record<PositionRegion, { x: number; y: number }> = {
@@ -23,6 +34,12 @@ const rectSizeMap: Record<ShapeSize, { width: number; height: number }> = {
   small: { width: 96, height: 60 },
   normal: { width: 128, height: 84 },
   large: { width: 176, height: 112 },
+};
+
+const triangleSizeMap: Record<ShapeSize, { width: number; height: number }> = {
+  small: { width: 96, height: 84 },
+  normal: { width: 128, height: 112 },
+  large: { width: 176, height: 152 },
 };
 
 const lineLengthMap: Record<ShapeSize, number> = {
@@ -53,10 +70,11 @@ type Bounds = {
 export function createCanvasObject(
   command: Extract<DrawingCommand, { type: "create" }>,
   existingObjects: CanvasObject[] = [],
+  activeObjectId?: string,
 ): CanvasObject {
   const now = Date.now();
   const size = command.size ?? "normal";
-  const position = resolveCreatePosition(command, existingObjects, size);
+  const position = resolveCreatePosition(command, existingObjects, size, activeObjectId);
   const base = {
     id: createId(),
     type: command.shape,
@@ -77,6 +95,10 @@ export function createCanvasObject(
 
   if (command.shape === "rect") {
     return { ...base, ...rectSizeMap[size] };
+  }
+
+  if (command.shape === "triangle") {
+    return { ...base, ...triangleSizeMap[size] };
   }
 
   if (command.shape === "arrow") {
@@ -118,12 +140,23 @@ function resolveCreatePosition(
   command: Extract<DrawingCommand, { type: "create" }>,
   existingObjects: CanvasObject[],
   size: ShapeSize,
+  activeObjectId?: string,
 ) {
   const regionPosition = resolvePosition(command.position?.region);
   const requestedPosition = {
     x: command.position?.x ?? regionPosition.x,
     y: command.position?.y ?? regionPosition.y,
   };
+
+  if (command.position?.x !== undefined || command.position?.y !== undefined) {
+    return requestedPosition;
+  }
+
+  const relativePosition = resolveRelativePosition(command.position?.relative, existingObjects, getCommandBoxSize(command, size), activeObjectId);
+
+  if (relativePosition) {
+    return relativePosition;
+  }
 
   if (!shouldAutoPlace(command, existingObjects)) {
     return requestedPosition;
@@ -154,14 +187,58 @@ function findAutoPlacementAnchor(objects: CanvasObject[]) {
   return [...objects].reverse().find((object) => object.type !== "arrow" && object.type !== "line");
 }
 
-function findNonOverlappingPlacement(anchor: CanvasObject, size: { width: number; height: number }, objects: CanvasObject[]) {
+function resolveRelativePosition(
+  relative: PositionSpec["relative"],
+  objects: CanvasObject[],
+  size: { width: number; height: number },
+  activeObjectId?: string,
+) {
+  if (!relative) {
+    return undefined;
+  }
+
+  const anchor = resolvePositionTarget(objects, relative.target, activeObjectId);
+
+  return anchor ? findNonOverlappingPlacement(anchor, size, objects, relative.direction) : undefined;
+}
+
+function resolvePositionTarget(objects: CanvasObject[], target: TargetSpec, activeObjectId?: string) {
+  if (target.ref === "active") {
+    return objects.find((object) => object.id === activeObjectId) ?? findAutoPlacementAnchor(objects);
+  }
+
+  if (target.ref === "last-created") {
+    return findAutoPlacementAnchor(objects);
+  }
+
+  if (target.ref === "name") {
+    return [...objects].reverse().find((object) => normalizeObjectName(object.name) === target.name);
+  }
+
+  if (target.ref === "query") {
+    return resolveTargetQuery(objects, target.query);
+  }
+
+  return undefined;
+}
+
+function findNonOverlappingPlacement(
+  anchor: CanvasObject,
+  size: { width: number; height: number },
+  objects: CanvasObject[],
+  preferredDirection?: Direction,
+) {
   const anchorBounds = getObjectBounds(anchor);
-  const candidates = [
-    { x: anchorBounds.right + placementGap + size.width / 2, y: anchor.y },
-    { x: anchorBounds.left - placementGap - size.width / 2, y: anchor.y },
-    { x: anchor.x, y: anchorBounds.bottom + placementGap + size.height / 2 },
-    { x: anchor.x, y: anchorBounds.top - placementGap - size.height / 2 },
-  ].map((point) => clampCenter(point, size));
+  const candidateMap: Record<Direction, { x: number; y: number }> = {
+    right: { x: anchorBounds.right + placementGap + size.width / 2, y: anchor.y },
+    left: { x: anchorBounds.left - placementGap - size.width / 2, y: anchor.y },
+    down: { x: anchor.x, y: anchorBounds.bottom + placementGap + size.height / 2 },
+    up: { x: anchor.x, y: anchorBounds.top - placementGap - size.height / 2 },
+  };
+  const directions = preferredDirection
+    ? [preferredDirection, ...(["right", "left", "down", "up"] as Direction[]).filter((direction) => direction !== preferredDirection)]
+    : (["right", "left", "down", "up"] as Direction[]);
+  const candidates = directions.map((direction) => clampCenter(candidateMap[direction], size));
 
   return candidates.find((point) => !overlapsAny(toBounds(point, size), objects)) ?? candidates[0];
 }
@@ -206,6 +283,10 @@ function getCommandBoxSize(command: Extract<DrawingCommand, { type: "create" }>,
     return rectSizeMap[size];
   }
 
+  if (command.shape === "triangle") {
+    return triangleSizeMap[size];
+  }
+
   if (command.shape === "text") {
     const fontSize = command.style?.fontSize ?? textFontSizeMap[size];
 
@@ -235,6 +316,13 @@ function getObjectBounds(object: CanvasObject): Bounds {
   if (object.type === "rect") {
     const width = object.width ?? rectSizeMap.normal.width;
     const height = object.height ?? rectSizeMap.normal.height;
+
+    return toBounds({ x: object.x, y: object.y }, { width, height });
+  }
+
+  if (object.type === "triangle") {
+    const width = object.width ?? triangleSizeMap.normal.width;
+    const height = object.height ?? triangleSizeMap.normal.height;
 
     return toBounds({ x: object.x, y: object.y }, { width, height });
   }
@@ -309,6 +397,10 @@ function inferShapeType(reference: string): ShapeType | undefined {
 
   if (/矩形|方形|方块|方框|框/.test(reference)) {
     return "rect";
+  }
+
+  if (/三角形|三角/.test(reference)) {
+    return "triangle";
   }
 
   if (/箭头/.test(reference)) {

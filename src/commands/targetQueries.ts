@@ -27,6 +27,7 @@ const regionAnchors: Record<PositionRegion, { x: number; y: number }> = {
 const shapeLabels: Record<ShapeType, string> = {
   circle: "圆形",
   rect: "矩形",
+  triangle: "三角形",
   line: "直线",
   arrow: "箭头",
   text: "文本",
@@ -83,6 +84,10 @@ function getObjectMeasure(object: CanvasObject) {
 
   if (object.type === "rect") {
     return (object.width ?? 120) * (object.height ?? 80);
+  }
+
+  if (object.type === "triangle") {
+    return ((object.width ?? 128) * (object.height ?? 112)) / 2;
   }
 
   if (object.type === "line" || object.type === "arrow") {

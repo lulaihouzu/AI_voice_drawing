@@ -29,7 +29,7 @@ export type CommandSchemaValidationResult =
     };
 
 const maxAiCommandCount = 20;
-const shapeTypes: ShapeType[] = ["circle", "rect", "line", "arrow", "text"];
+const shapeTypes: ShapeType[] = ["circle", "rect", "triangle", "line", "arrow", "text"];
 const shapeSizes: ShapeSize[] = ["small", "normal", "large"];
 const positionRegions: PositionRegion[] = [
   "center",
@@ -317,15 +317,39 @@ function parsePosition(value: unknown, path: string): Result<PositionSpec | unde
   const region = value.region === undefined ? okValue(undefined) : readEnum(value.region, positionRegions, `${path}.region`, "位置区域无效。");
   const x = readOptionalNumber(value.x, `${path}.x`, "x 坐标必须是 0 到 960 之间的数字。", 0, 960);
   const y = readOptionalNumber(value.y, `${path}.y`, "y 坐标必须是 0 到 620 之间的数字。", 0, 620);
+  const relative = parseRelativePosition(value.relative, `${path}.relative`);
 
   if (!region.ok) return region;
   if (!x.ok) return x;
   if (!y.ok) return y;
+  if (!relative.ok) return relative;
 
   return okValue({
     region: region.value,
     x: x.value,
     y: y.value,
+    relative: relative.value,
+  });
+}
+
+function parseRelativePosition(value: unknown, path: string): Result<PositionSpec["relative"]> {
+  if (value === undefined) {
+    return okValue(undefined);
+  }
+
+  if (!isRecord(value)) {
+    return fail(path, "相对位置必须是对象。");
+  }
+
+  const target = parseTarget(value.target, `${path}.target`);
+  const direction = readEnum(value.direction, directions, `${path}.direction`, "相对方向无效。");
+
+  if (!target.ok) return target;
+  if (!direction.ok) return direction;
+
+  return okValue({
+    target: target.value,
+    direction: direction.value,
   });
 }
 

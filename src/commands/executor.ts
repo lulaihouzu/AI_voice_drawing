@@ -18,7 +18,7 @@ const canvasEngine = new CanvasEngine();
 
 export function executeDrawingCommand(command: DrawingCommand, state: ExecutionState): ExecutionResult {
   if (command.type === "create") {
-    const object = canvasEngine.createObject(command, state.objects);
+    const object = canvasEngine.createObject(command, state.objects, state.activeObjectId);
 
     return {
       objects: [...state.objects, object],

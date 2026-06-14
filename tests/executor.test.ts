@@ -135,6 +135,53 @@ describe("executeDrawingCommand", () => {
     });
   });
 
+  it("creates triangles below a referenced shape", () => {
+    const circle = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        style: {
+          fill: "#ef4444",
+        },
+      },
+      emptyState(),
+    );
+    const triangle = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "triangle",
+        style: {
+          fill: "#1f2937",
+        },
+        position: {
+          region: "bottom",
+          relative: {
+            target: {
+              ref: "query",
+              query: {
+                shape: "circle",
+              },
+            },
+            direction: "down",
+          },
+        },
+      },
+      circle,
+    );
+
+    expect(triangle.objects).toHaveLength(2);
+    expect(triangle.objects[1]).toMatchObject({
+      type: "triangle",
+      x: 480,
+      y: 454,
+      width: 128,
+      height: 112,
+      style: {
+        fill: "#1f2937",
+      },
+    });
+  });
+
   it("creates an arrow between the last two drawable objects", () => {
     const first = executeDrawingCommand(
       {
