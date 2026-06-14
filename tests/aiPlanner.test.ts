@@ -25,11 +25,21 @@ describe("AiCommandPlanner", () => {
     expect(result.commands[0]).toMatchObject({
       type: "create",
       shape: "rect",
+      position: {
+        region: "left",
+        x: 260,
+        y: 310,
+      },
     });
     expect(result.commands[5]).toMatchObject({
       type: "create",
       shape: "text",
       text: "输入账号",
+      position: {
+        region: "left",
+        x: 260,
+        y: 310,
+      },
     });
   });
 

@@ -181,6 +181,13 @@ describe("useDrawingStore command loop", () => {
       "校验身份",
       "进入系统",
     ]);
+    expect(confirmedState.objects.find((object) => object.type === "text" && object.text === "校验身份")).toMatchObject({
+      x: 480,
+      y: 310,
+    });
+    expect(confirmedState.objects.find((object) => object.type === "rect" && object.x === 480)).toMatchObject({
+      y: 310,
+    });
   });
 
   it("creates a login flow when the transcript only contains the flowchart title", async () => {
