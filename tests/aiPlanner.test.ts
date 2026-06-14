@@ -11,8 +11,8 @@ describe("AiCommandPlanner", () => {
 
     expect(result).toMatchObject({
       status: "ready",
-      providerId: "mock-ai-command-provider",
-      commandCount: 5,
+      providerId: "local-diagram-template",
+      commandCount: 8,
       requiresConfirmation: true,
       resolvedText: "帮我生成一个用户登录流程图",
     });
@@ -21,9 +21,14 @@ describe("AiCommandPlanner", () => {
       throw new Error("Expected ready AI command plan.");
     }
 
-    expect(result.commands.map((command) => command.type)).toEqual(["create", "create", "create", "create", "create"]);
+    expect(result.commands.map((command) => command.type)).toEqual(["create", "create", "create", "create", "create", "create", "create", "create"]);
     expect(result.commands[0]).toMatchObject({
       type: "create",
+      shape: "rect",
+    });
+    expect(result.commands[5]).toMatchObject({
+      type: "create",
+      shape: "text",
       text: "输入账号",
     });
   });

@@ -19,11 +19,10 @@ describe("MockAiCommandProvider", () => {
 
     expectCommandSuccess(result);
 
-    expect(result.commands).toHaveLength(5);
+    expect(result.commands).toHaveLength(8);
     expect(result.commands[0]).toMatchObject({
       type: "create",
-      shape: "text",
-      text: "输入账号",
+      shape: "rect",
       position: {
         region: "left",
       },
@@ -39,6 +38,11 @@ describe("MockAiCommandProvider", () => {
       type: "create",
       shape: "arrow",
     });
+    expect(result.commands.slice(5).map((command) => (command.type === "create" ? command.text : undefined))).toEqual([
+      "输入账号",
+      "校验身份",
+      "进入系统",
+    ]);
   });
 
   it("creates a three step flow command plan", async () => {
@@ -50,9 +54,9 @@ describe("MockAiCommandProvider", () => {
     expectCommandSuccess(result);
 
     expect(result.explanation).toContain("三步流程图");
-    expect(result.commands).toHaveLength(5);
-    expect(result.commands.map((command) => command.type)).toEqual(["create", "create", "create", "create", "create"]);
-    expect(result.commands[3]).toMatchObject({
+    expect(result.commands).toHaveLength(8);
+    expect(result.commands.map((command) => command.type)).toEqual(["create", "create", "create", "create", "create", "create", "create", "create"]);
+    expect(result.commands[7]).toMatchObject({
       type: "create",
       text: "第三步",
     });
@@ -67,7 +71,7 @@ describe("MockAiCommandProvider", () => {
     expectCommandSuccess(result);
 
     expect(result.explanation).toContain("订单支付流程图");
-    expect(result.commands).toHaveLength(7);
+    expect(result.commands).toHaveLength(11);
     const nodeTexts = result.commands.flatMap((command) => {
       if (command.type === "create" && command.shape === "text") {
         return [command.text];
@@ -77,6 +81,7 @@ describe("MockAiCommandProvider", () => {
     });
 
     expect(nodeTexts).toEqual(["选择商品", "提交订单", "完成支付", "等待发货"]);
+    expect(result.commands.filter((command) => command.type === "create" && command.shape === "rect")).toHaveLength(4);
     expect(result.commands.filter((command) => command.type === "create" && command.shape === "arrow")).toHaveLength(3);
   });
 

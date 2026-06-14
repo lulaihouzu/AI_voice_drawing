@@ -524,13 +524,13 @@ speechInput.onResult((text) => {
 - `AiCommandContext`：传递画布对象、当前对象和最近对象等上下文。
 - `AiCommandResult`：区分可执行命令草案、洞察反馈与失败反馈。
 - `MockAiCommandProvider`：测试和演示用 provider，不访问真实模型。
-- `MockAiCommandProvider` 内置主题模板，支持将“生成订单支付流程图”等一句话转换为顺序节点和连接箭头。
+- `diagramTemplates`：提供登录、注册、订单支付等稳定流程图模板，输出矩形节点、文字标签和边缘连接箭头。
 - `canvasInsights`：根据当前画布对象生成中文内容总结和优化建议。
 - `validateDrawingCommands`：校验未知 JSON 是否为合法 `DrawingCommand[]`，并返回清洗后的命令数组。
 - `HttpAiCommandProvider`：向配置的 AI 解析服务发送 `{ text, context }`，并把命令响应或 `kind: "insight"` 洞察响应转换为统一的 `AiCommandResult`。
 - `server/deepseekProxy.mjs`：真实模型代理，要求 DeepSeek 使用 JSON 对象返回命令、洞察或失败结果。
 - `createConfiguredAiCommandProvider`：读取 `import.meta.env.VITE_AI_COMMAND_ENDPOINT` 创建 HTTP provider。
-- `AiCommandPlanner`：把 provider 命令结果整理为可确认的命令计划；把洞察结果直接返回给反馈链路；遇到“没有当前对象”等可补充失败时生成 `AiClarification`，等待用户下一句语音补全。
+- `AiCommandPlanner`：优先匹配稳定流程图模板；其余场景把 provider 命令结果整理为可确认的命令计划；把洞察结果直接返回给反馈链路；遇到“没有当前对象”等可补充失败时生成 `AiClarification`，等待用户下一句语音补全。
 
 HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。当前已提供 DeepSeek 本地代理，使用 `DEEPSEEK_API_KEY` 调用 `https://api.deepseek.com/chat/completions`。`npm run dev` 会读取本地 `.env`，检测到 `DEEPSEEK_API_KEY` 时自动同时启动 DeepSeek 代理和前端；未配置 API Key 或 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器；画布总结、优化建议等洞察结果只进入反馈面板和语音播报，不进入执行器。
 

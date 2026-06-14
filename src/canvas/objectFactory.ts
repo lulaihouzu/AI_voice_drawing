@@ -365,10 +365,7 @@ function resolveConnection(connection: ConnectionSpec | undefined, objects: Canv
     return undefined;
   }
 
-  return {
-    from: getObjectAnchor(from),
-    to: getObjectAnchor(to),
-  };
+  return getConnectionPoints(from, to);
 }
 
 function findObjectByReference(objects: CanvasObject[], reference: string) {
@@ -435,7 +432,41 @@ function findLatestOtherObject(objects: CanvasObject[], excludedId: string) {
   return [...objects].reverse().find((object) => object.id !== excludedId && object.type !== "arrow");
 }
 
-function getObjectAnchor(object: CanvasObject) {
+function getConnectionPoints(from: CanvasObject, to: CanvasObject) {
+  const fromCenter = getObjectCenter(from);
+  const toCenter = getObjectCenter(to);
+  const dx = toCenter.x - fromCenter.x;
+  const dy = toCenter.y - fromCenter.y;
+
+  return {
+    from: getDirectionalAnchor(from, dx, dy),
+    to: getDirectionalAnchor(to, -dx, -dy),
+  };
+}
+
+function getDirectionalAnchor(object: CanvasObject, dx: number, dy: number) {
+  const center = getObjectCenter(object);
+
+  if (object.type === "line" || object.type === "arrow") {
+    return center;
+  }
+
+  const bounds = getObjectBounds(object);
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return {
+      x: dx >= 0 ? bounds.right : bounds.left,
+      y: center.y,
+    };
+  }
+
+  return {
+    x: center.x,
+    y: dy >= 0 ? bounds.bottom : bounds.top,
+  };
+}
+
+function getObjectCenter(object: CanvasObject) {
   if (object.type === "line" || object.type === "arrow") {
     return {
       x: object.x + (object.width ?? 0) / 2,

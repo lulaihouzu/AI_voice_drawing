@@ -23,8 +23,12 @@ describe("validateDrawingCommands", () => {
       throw new Error(validation.errors[0].message);
     }
 
-    expect(validation.commands).toHaveLength(5);
+    expect(validation.commands).toHaveLength(8);
     expect(validation.commands[0]).toMatchObject({
+      type: "create",
+      shape: "rect",
+    });
+    expect(validation.commands[5]).toMatchObject({
       type: "create",
       shape: "text",
       text: "输入账号",
