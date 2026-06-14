@@ -57,8 +57,9 @@ const diagramTemplates: DiagramTemplate[] = [
 
 export function createDiagramTemplatePlan(text: string): DiagramTemplatePlan | undefined {
   const normalizedText = normalizeInput(text);
+  const template = diagramTemplates.find((item) => item.keywords.some((keyword) => normalizedText.includes(keyword)));
 
-  if (!isDiagramGenerationRequest(normalizedText)) {
+  if (!isDiagramGenerationRequest(normalizedText, Boolean(template))) {
     return undefined;
   }
 
@@ -69,8 +70,6 @@ export function createDiagramTemplatePlan(text: string): DiagramTemplatePlan | u
       confidence: 0.8,
     };
   }
-
-  const template = diagramTemplates.find((item) => item.keywords.some((keyword) => normalizedText.includes(keyword)));
 
   if (!template) {
     return undefined;
@@ -147,11 +146,11 @@ function pickRegions(stepCount: number): PositionRegion[] {
   return flowRegions;
 }
 
-function isDiagramGenerationRequest(text: string) {
-  return (
-    (text.includes("生成") || text.includes("创建") || text.includes("画") || text.includes("做")) &&
-    (text.includes("流程图") || text.includes("图示") || text.includes("流程"))
-  );
+function isDiagramGenerationRequest(text: string, hasKnownTemplate: boolean) {
+  const hasDiagramKeyword = text.includes("流程图") || text.includes("图示") || text.includes("流程");
+  const hasCreateIntent = text.includes("生成") || text.includes("创建") || text.includes("画") || text.includes("做");
+
+  return hasDiagramKeyword && (hasCreateIntent || hasKnownTemplate || isThreeStepFlowRequest(text));
 }
 
 function isThreeStepFlowRequest(text: string) {
