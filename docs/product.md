@@ -166,7 +166,7 @@ MVP 目标是完成一条可演示、可闭环的纯语音绘图流程：用户�
 - 已提供本地 mock provider，用于演示复杂指令生成结构化命令草案
 - 已提供命令 schema 校验，可执行 AI 输出必须通过 allow-list 才能进入后续执行链路
 - 已提供 HTTP AI provider，前端通过 `VITE_AI_COMMAND_ENDPOINT` 调用后端代理或本地服务，不在前端保存模型 API key
-- 已提供 DeepSeek 本地代理服务，API Key 只通过 `DEEPSEEK_API_KEY` 注入代理进程
+- 已提供 DeepSeek 本地代理服务，填入 `DEEPSEEK_API_KEY` 后通过 `npm run dev` 自动启用真实模型能力
 - 已提供 AI command planner，用于保存澄清问题、合并用户补充回答并组织复杂命令计划
 - 已提供 AI 解析开关、语音开关指令和语音确认执行入口
 - 已支持根据一句话自动生成图示草稿，当前覆盖登录、注册、订单支付、客服工单、审批和项目发布等流程图模板

@@ -308,6 +308,8 @@ npm install
 npm run dev
 ```
 
+如果本地 `.env` 中配置了 `DEEPSEEK_API_KEY`，`npm run dev` 会自动同时启动 DeepSeek 本地代理和前端，并调用真实大模型能力；如果没有配置 API Key，则自动使用本地 mock AI provider。
+
 构建生产版本：
 
 ```bash
@@ -320,20 +322,31 @@ npm run build
 npm run test
 ```
 
-DeepSeek 真实模型代理：
+DeepSeek 真实模型配置：
 
 ```bash
-export DEEPSEEK_API_KEY=你的_DeepSeek_API_Key
+cp .env.example .env
+```
+
+然后在 `.env` 中填写：
+
+```bash
+DEEPSEEK_API_KEY=你的_DeepSeek_API_Key
+```
+
+之后照常启动项目：
+
+```bash
+npm run dev
+```
+
+`npm run dev` 会读取本地 `.env`。检测到 `DEEPSEEK_API_KEY` 后，会自动启动 `http://localhost:8787/api/ai/commands` 代理，并把前端 `VITE_AI_COMMAND_ENDPOINT` 指向该代理。前端不会保存或打包模型 API key；DeepSeek API Key 只放在代理服务环境变量中。
+
+如果需要手动排查代理服务，也可以单独运行：
+
+```bash
 npm run ai:deepseek
 ```
-
-另开一个终端启动已连接代理的前端：
-
-```bash
-npm run dev:ai
-```
-
-`npm run ai:deepseek` 默认启动 `http://localhost:8787/api/ai/commands`。`npm run dev:ai` 会把 `VITE_AI_COMMAND_ENDPOINT` 指向这个本地代理。前端不会保存或打包模型 API key；DeepSeek API Key 只放在代理服务的 `DEEPSEEK_API_KEY` 环境变量中。
 
 可选环境变量：
 
@@ -346,7 +359,7 @@ AI_PROXY_CORS_ORIGIN=*
 
 服务端返回可执行操作时必须是合法命令数组，前端会再次通过 `validateDrawingCommands` 校验后才允许进入后续执行链路。服务端也可以返回 `kind: "insight"` 的洞察消息，用于画布总结或优化建议，这类结果只进入反馈播报，不直接修改画布。
 
-未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端 AI 开关默认使用本地 mock provider，便于演示“生成用户登录流程图”“高亮这个图形”等 AI 命令计划；配置 endpoint 后会切换到 HTTP provider。
+未配置 `DEEPSEEK_API_KEY` 或 `VITE_AI_COMMAND_ENDPOINT` 时，前端 AI 开关默认使用本地 mock provider，便于演示“生成用户登录流程图”“高亮这个图形”等 AI 命令计划；配置 API Key 或 endpoint 后会切换到 HTTP provider。
 
 ## 推荐验证流程
 
@@ -409,6 +422,9 @@ AI_PROXY_CORS_ORIGIN=*
 - PR #18：实现 AI 解析开关与前端执行入口
 - PR #19：实现 AI 一句话生成图示模板
 - PR #20：实现 AI 画布总结与优化建议
+- PR #21：补充 Demo 演示脚本与视频链接占位（已由 PR #22 回退）
+- PR #22：回退 Demo 演示脚本与视频链接占位
 - PR #23：实现 DeepSeek 真实模型代理
+- PR #24：优化 DeepSeek 一键启动体验
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。

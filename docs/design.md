@@ -187,7 +187,7 @@ AI 解析开启后，系统仍优先执行本地规则命令；只有规则无�
 - 画布执行：`tests/executor.test.ts`
 - 状态闭环：`tests/store.test.ts`
 - 导出序列化：`tests/export.test.ts`
-- AI provider、planner、图示生成、画布洞察、DeepSeek 代理、前端入口和 schema 校验：`tests/aiProvider.test.ts`、`tests/aiPlanner.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`、`tests/deepseekProxy.test.js`、`tests/store.test.ts`
+- AI provider、planner、图示生成、画布洞察、DeepSeek 代理、统一启动脚本、前端入口和 schema 校验：`tests/aiProvider.test.ts`、`tests/aiPlanner.test.ts`、`tests/commandSchema.test.ts`、`tests/httpAiProvider.test.ts`、`tests/deepseekProxy.test.js`、`tests/devScript.test.js`、`tests/store.test.ts`
 
 验证命令：
 
@@ -200,7 +200,7 @@ npm run build
 当前测试结果：
 
 - 安全审计：0 漏洞
-- 单元测试：9 个测试文件，87 个测试
+- 单元测试：10 个测试文件，91 个测试
 - 生产构建：通过
 
 ## 8. 原创与第三方边界
@@ -219,6 +219,7 @@ npm run build
 - AI 命令 schema allow-list 校验
 - HTTP AI provider、服务调用边界和失败反馈逻辑
 - DeepSeek 本地代理、JSON 提示词和模型输出归一化逻辑
+- 自动读取 `.env` 并按 API Key 启用真实模型代理的统一启动逻辑
 - AI 多轮澄清状态和复杂命令计划组织逻辑
 - AI 解析开关、语音确认执行和前端状态反馈逻辑
 - 一句话主题图示模板匹配与顺序节点/箭头计划生成逻辑
