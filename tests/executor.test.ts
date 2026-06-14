@@ -79,6 +79,62 @@ describe("executeDrawingCommand", () => {
     });
   });
 
+  it("places default new shapes beside the latest object instead of overlapping it", () => {
+    const circle = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+        position: {
+          region: "center",
+        },
+      },
+      emptyState(),
+    );
+    const rect = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+        position: {
+          region: "center",
+        },
+      },
+      circle,
+    );
+
+    expect(rect.objects).toHaveLength(2);
+    expect(rect.objects[1]).toMatchObject({
+      type: "rect",
+      x: 632,
+      y: 310,
+    });
+  });
+
+  it("keeps explicit non-center positions unchanged", () => {
+    const circle = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "circle",
+      },
+      emptyState(),
+    );
+    const rect = executeDrawingCommand(
+      {
+        type: "create",
+        shape: "rect",
+        position: {
+          region: "left",
+        },
+      },
+      circle,
+    );
+
+    expect(rect.objects[1]).toMatchObject({
+      type: "rect",
+      x: 260,
+      y: 310,
+    });
+  });
+
   it("creates an arrow between the last two drawable objects", () => {
     const first = executeDrawingCommand(
       {

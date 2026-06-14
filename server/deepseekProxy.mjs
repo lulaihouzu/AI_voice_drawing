@@ -266,6 +266,8 @@ function buildSystemPrompt() {
     `允许创建的 shape：${allowedShapes.join(", ")}。`,
     `允许的位置 region：${allowedRegions.join(", ")}。`,
     "颜色必须使用 #RRGGBB 十六进制值。",
+    "用户明确说圆形、矩形、箭头、直线、文字时，shape 必须分别使用 circle、rect、arrow、line、text，不要沿用上下文对象的 shape。",
+    "用户说在某个对象旁边、左侧、右侧、上方或下方创建图形时，优先参考 context.objects、activeObjectId、lastCreatedObjectId 计算 position.x 和 position.y，避免新图形与已有对象重叠。",
     "文本长度不要超过 80 个字符，命令数量不要超过 20 条。",
     "不要输出代码、脚本、HTML、CSS、URL 或任何 commands 以外的可执行内容。",
   ].join("\n");
