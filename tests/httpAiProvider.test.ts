@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHttpAiCommandProvider } from "../src/ai";
 import type { AiCommandResult } from "../src/ai";
+
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  globalThis.fetch = originalFetch;
+});
 
 describe("HttpAiCommandProvider", () => {
   it("posts text and context to the configured endpoint", async () => {
@@ -91,6 +98,41 @@ describe("HttpAiCommandProvider", () => {
         connection: undefined,
       },
     ]);
+  });
+
+  it("binds the default browser fetch implementation", async () => {
+    let fetchThis: unknown;
+    globalThis.fetch = vi.fn(async function (this: unknown, _input: RequestInfo | URL, init?: RequestInit) {
+      fetchThis = this;
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        text: "生成一个流程图",
+      });
+
+      return jsonResponse({
+        commands: [
+          {
+            type: "create",
+            shape: "text",
+            text: "开始",
+          },
+        ],
+        explanation: "生成流程图。",
+      });
+    });
+
+    const provider = createHttpAiCommandProvider({
+      endpoint: "/api/ai/commands",
+    });
+    const result = await provider.parseCommand("生成一个流程图", {
+      objects: [],
+    });
+
+    expect(fetchThis).toBe(globalThis);
+    expect(result).toMatchObject({
+      ok: true,
+      kind: "commands",
+      explanation: "生成流程图。",
+    });
   });
 
   it("parses insight responses from the configured endpoint", async () => {

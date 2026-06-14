@@ -38,7 +38,7 @@ export class HttpAiCommandProvider implements AiCommandProvider {
   constructor(options: HttpAiCommandProviderOptions = {}) {
     this.id = options.providerId ?? defaultProviderId;
     this.endpoint = options.endpoint?.trim();
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
     this.timeoutMs = options.timeoutMs ?? defaultTimeoutMs;
   }
 
