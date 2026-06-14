@@ -2,6 +2,17 @@ import type { DrawingCommand, PositionRegion } from "../commands/types";
 
 const flowRegions: PositionRegion[] = ["top-left", "top-right", "bottom-right", "bottom-left"];
 const flowColors = ["#dbeafe", "#dcfce7", "#fef3c7", "#fee2e2"];
+const regionPositions: Record<PositionRegion, { x: number; y: number }> = {
+  center: { x: 480, y: 310 },
+  left: { x: 260, y: 310 },
+  right: { x: 700, y: 310 },
+  top: { x: 480, y: 160 },
+  bottom: { x: 480, y: 460 },
+  "top-left": { x: 260, y: 160 },
+  "top-right": { x: 700, y: 160 },
+  "bottom-left": { x: 260, y: 460 },
+  "bottom-right": { x: 700, y: 460 },
+};
 
 type DiagramTemplate = {
   title: string;
@@ -97,12 +108,16 @@ function createFlowDiagramCommands(steps: string[], regions: PositionRegion[], c
 }
 
 function createStepBox(region: PositionRegion, fill: string): DrawingCommand {
+  const position = regionPositions[region];
+
   return {
     type: "create",
     shape: "rect",
     size: "normal",
     position: {
       region,
+      x: position.x,
+      y: position.y,
     },
     style: {
       fill,
@@ -113,6 +128,8 @@ function createStepBox(region: PositionRegion, fill: string): DrawingCommand {
 }
 
 function createStepLabel(text: string, region: PositionRegion): DrawingCommand {
+  const position = regionPositions[region];
+
   return {
     type: "create",
     shape: "text",
@@ -120,6 +137,8 @@ function createStepLabel(text: string, region: PositionRegion): DrawingCommand {
     size: "small",
     position: {
       region,
+      x: position.x,
+      y: position.y,
     },
     style: {
       stroke: "#111827",
