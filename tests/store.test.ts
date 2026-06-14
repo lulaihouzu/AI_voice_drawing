@@ -183,6 +183,37 @@ describe("useDrawingStore command loop", () => {
     ]);
   });
 
+  it("creates a login flow when the transcript only contains the flowchart title", async () => {
+    const store = useDrawingStore.getState();
+
+    store.setAiEnabled(true);
+    const planResult = await useDrawingStore.getState().runVoiceCommandText("用户登录流程图");
+    const plannedState = useDrawingStore.getState();
+
+    expect(planResult).toMatchObject({
+      ok: true,
+      changed: false,
+      source: "ai",
+      awaitingConfirmation: true,
+      commandCount: 8,
+    });
+    expect(plannedState.pendingAiPlan).toMatchObject({
+      providerId: "local-diagram-template",
+      commandCount: 8,
+      resolvedText: "用户登录流程图",
+    });
+
+    await useDrawingStore.getState().runVoiceCommandText("确认执行");
+    const confirmedState = useDrawingStore.getState();
+
+    expect(confirmedState.objects.filter((object) => object.type === "rect")).toHaveLength(3);
+    expect(confirmedState.objects.filter((object) => object.type === "text").map((object) => object.text)).toEqual([
+      "输入账号",
+      "校验身份",
+      "进入系统",
+    ]);
+  });
+
   it("creates a one sentence order diagram through the AI voice flow", async () => {
     const store = useDrawingStore.getState();
 

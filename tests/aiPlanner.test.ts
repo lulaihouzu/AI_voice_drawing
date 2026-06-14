@@ -33,6 +33,34 @@ describe("AiCommandPlanner", () => {
     });
   });
 
+  it("uses the local template when the spoken text is only a flowchart title", async () => {
+    const planner = createAiCommandPlanner(createMockAiCommandProvider());
+    const result = await planner.plan("用户登录流程图", {
+      objects: [],
+    });
+
+    expect(result).toMatchObject({
+      status: "ready",
+      providerId: "local-diagram-template",
+      commandCount: 8,
+      requiresConfirmation: true,
+      resolvedText: "用户登录流程图",
+    });
+
+    if (result.status !== "ready") {
+      throw new Error("Expected title-only flowchart prompt to use the local template.");
+    }
+
+    const createCommands = result.commands.filter((command) => command.type === "create");
+
+    expect(createCommands.filter((command) => command.shape === "rect")).toHaveLength(3);
+    expect(createCommands.filter((command) => command.shape === "text").map((command) => command.text)).toEqual([
+      "输入账号",
+      "校验身份",
+      "进入系统",
+    ]);
+  });
+
   it("keeps a pending clarification when the target object is missing", async () => {
     const planner = createAiCommandPlanner(createMockAiCommandProvider(), {
       createClarificationId: () => "clarification-1",
