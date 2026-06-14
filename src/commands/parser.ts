@@ -416,6 +416,22 @@ function findTargetSizeRank(text: string): TargetQuery["sizeRank"] | undefined {
 }
 
 function findShape(text: string) {
+  const createdShape = findShapeAfterCreateVerb(text);
+
+  if (createdShape) {
+    return createdShape;
+  }
+
+  return findAnyShape(text);
+}
+
+function findShapeAfterCreateVerb(text: string) {
+  const match = text.match(/(?:画|绘制|创建|添加|生成)(.+)$/);
+
+  return match ? findAnyShape(match[1]) : undefined;
+}
+
+function findAnyShape(text: string) {
   return shapeKeywords.find(([, keywords]) => keywords.some((keyword) => text.includes(keyword)))?.[0];
 }
 

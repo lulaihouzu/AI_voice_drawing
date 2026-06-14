@@ -43,6 +43,18 @@ describe("parseCommand", () => {
     });
   });
 
+  it("uses the shape after the create verb when a target object is mentioned", () => {
+    const commands = expectOk(parseCommand("在这个圆形旁边画一个红色实心的矩形"));
+
+    expect(commands[0]).toMatchObject({
+      type: "create",
+      shape: "rect",
+      style: {
+        fill: "#ef4444",
+      },
+    });
+  });
+
   it("parses line and arrow creation", () => {
     const lineCommands = expectOk(parseCommand("画一条黑色直线"));
     const arrowCommands = expectOk(parseCommand("从圆形指向矩形画一个箭头"));

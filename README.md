@@ -427,5 +427,6 @@ AI_PROXY_CORS_ORIGIN=*
 - PR #23：实现 DeepSeek 真实模型代理
 - PR #24：优化 DeepSeek 一键启动体验
 - PR #25：修复浏览器 fetch 绑定问题
+- PR #26：优化相邻创建与重叠避让
 
 后续模块仍将继续遵循“一次 PR 只做一件事”的提交规范。

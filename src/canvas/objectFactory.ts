@@ -37,18 +37,31 @@ const textFontSizeMap: Record<ShapeSize, number> = {
   large: 36,
 };
 
+const canvasWidth = 960;
+const canvasHeight = 620;
+const canvasPadding = 16;
+const placementGap = 40;
+const overlapMargin = 8;
+
+type Bounds = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
 export function createCanvasObject(
   command: Extract<DrawingCommand, { type: "create" }>,
   existingObjects: CanvasObject[] = [],
 ): CanvasObject {
   const now = Date.now();
-  const position = resolvePosition(command.position?.region);
   const size = command.size ?? "normal";
+  const position = resolveCreatePosition(command, existingObjects, size);
   const base = {
     id: createId(),
     type: command.shape,
-    x: command.position?.x ?? position.x,
-    y: command.position?.y ?? position.y,
+    x: position.x,
+    y: position.y,
     style: {
       stroke: "#1f2937",
       strokeWidth: 2,
@@ -99,6 +112,154 @@ export function createCanvasObject(
 
 function resolvePosition(region: PositionRegion = "center") {
   return positionMap[region];
+}
+
+function resolveCreatePosition(
+  command: Extract<DrawingCommand, { type: "create" }>,
+  existingObjects: CanvasObject[],
+  size: ShapeSize,
+) {
+  const regionPosition = resolvePosition(command.position?.region);
+  const requestedPosition = {
+    x: command.position?.x ?? regionPosition.x,
+    y: command.position?.y ?? regionPosition.y,
+  };
+
+  if (!shouldAutoPlace(command, existingObjects)) {
+    return requestedPosition;
+  }
+
+  const anchor = findAutoPlacementAnchor(existingObjects);
+
+  if (!anchor) {
+    return requestedPosition;
+  }
+
+  return findNonOverlappingPlacement(anchor, getCommandBoxSize(command, size), existingObjects) ?? requestedPosition;
+}
+
+function shouldAutoPlace(command: Extract<DrawingCommand, { type: "create" }>, existingObjects: CanvasObject[]) {
+  if (existingObjects.length === 0 || command.shape === "arrow" || command.shape === "line") {
+    return false;
+  }
+
+  if (command.position?.x !== undefined || command.position?.y !== undefined) {
+    return false;
+  }
+
+  return command.position?.region === undefined || command.position.region === "center";
+}
+
+function findAutoPlacementAnchor(objects: CanvasObject[]) {
+  return [...objects].reverse().find((object) => object.type !== "arrow" && object.type !== "line");
+}
+
+function findNonOverlappingPlacement(anchor: CanvasObject, size: { width: number; height: number }, objects: CanvasObject[]) {
+  const anchorBounds = getObjectBounds(anchor);
+  const candidates = [
+    { x: anchorBounds.right + placementGap + size.width / 2, y: anchor.y },
+    { x: anchorBounds.left - placementGap - size.width / 2, y: anchor.y },
+    { x: anchor.x, y: anchorBounds.bottom + placementGap + size.height / 2 },
+    { x: anchor.x, y: anchorBounds.top - placementGap - size.height / 2 },
+  ].map((point) => clampCenter(point, size));
+
+  return candidates.find((point) => !overlapsAny(toBounds(point, size), objects)) ?? candidates[0];
+}
+
+function clampCenter(point: { x: number; y: number }, size: { width: number; height: number }) {
+  return {
+    x: clamp(point.x, canvasPadding + size.width / 2, canvasWidth - canvasPadding - size.width / 2),
+    y: clamp(point.y, canvasPadding + size.height / 2, canvasHeight - canvasPadding - size.height / 2),
+  };
+}
+
+function overlapsAny(bounds: Bounds, objects: CanvasObject[]) {
+  return objects.some((object) => intersects(bounds, getObjectBounds(object)));
+}
+
+function intersects(a: Bounds, b: Bounds) {
+  return (
+    a.left - overlapMargin < b.right &&
+    a.right + overlapMargin > b.left &&
+    a.top - overlapMargin < b.bottom &&
+    a.bottom + overlapMargin > b.top
+  );
+}
+
+function toBounds(point: { x: number; y: number }, size: { width: number; height: number }): Bounds {
+  return {
+    left: point.x - size.width / 2,
+    right: point.x + size.width / 2,
+    top: point.y - size.height / 2,
+    bottom: point.y + size.height / 2,
+  };
+}
+
+function getCommandBoxSize(command: Extract<DrawingCommand, { type: "create" }>, size: ShapeSize) {
+  if (command.shape === "circle") {
+    const radius = circleRadiusMap[size];
+
+    return { width: radius * 2, height: radius * 2 };
+  }
+
+  if (command.shape === "rect") {
+    return rectSizeMap[size];
+  }
+
+  if (command.shape === "text") {
+    const fontSize = command.style?.fontSize ?? textFontSizeMap[size];
+
+    return {
+      width: Math.max(64, (command.text ?? "文本").length * fontSize),
+      height: fontSize * 1.4,
+    };
+  }
+
+  const length = lineLengthMap[size];
+
+  return { width: length, height: 16 };
+}
+
+function getObjectBounds(object: CanvasObject): Bounds {
+  if (object.type === "circle") {
+    const radius = object.radius ?? circleRadiusMap.normal;
+
+    return {
+      left: object.x - radius,
+      right: object.x + radius,
+      top: object.y - radius,
+      bottom: object.y + radius,
+    };
+  }
+
+  if (object.type === "rect") {
+    const width = object.width ?? rectSizeMap.normal.width;
+    const height = object.height ?? rectSizeMap.normal.height;
+
+    return toBounds({ x: object.x, y: object.y }, { width, height });
+  }
+
+  if (object.type === "text") {
+    const fontSize = object.style.fontSize ?? textFontSizeMap.normal;
+    const width = Math.max(64, (object.text ?? "文本").length * fontSize);
+    const height = fontSize * 1.4;
+
+    return toBounds({ x: object.x, y: object.y }, { width, height });
+  }
+
+  const x2 = object.x + (object.width ?? lineLengthMap.normal);
+  const y2 = object.y + (object.height ?? 0);
+
+  return {
+    left: Math.min(object.x, x2),
+    right: Math.max(object.x, x2),
+    top: Math.min(object.y, y2) - 8,
+    bottom: Math.max(object.y, y2) + 8,
+  };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function resolveConnection(connection: ConnectionSpec | undefined, objects: CanvasObject[]) {
