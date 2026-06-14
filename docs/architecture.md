@@ -532,7 +532,7 @@ speechInput.onResult((text) => {
 - `createConfiguredAiCommandProvider`：读取 `import.meta.env.VITE_AI_COMMAND_ENDPOINT` 创建 HTTP provider。
 - `AiCommandPlanner`：把 provider 命令结果整理为可确认的命令计划；把洞察结果直接返回给反馈链路；遇到“没有当前对象”等可补充失败时生成 `AiClarification`，等待用户下一句语音补全。
 
-HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。当前已提供 DeepSeek 本地代理，使用 `DEEPSEEK_API_KEY` 调用 `https://api.deepseek.com/chat/completions`。未配置 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器；画布总结、优化建议等洞察结果只进入反馈面板和语音播报，不进入执行器。
+HTTP provider 的请求体只包含用户文本、当前对象 ID、最近对象 ID、语言和序列化后的画布对象概要，不包含浏览器密钥。真实模型 API key 必须保存在后端代理或本地服务中。当前已提供 DeepSeek 本地代理，使用 `DEEPSEEK_API_KEY` 调用 `https://api.deepseek.com/chat/completions`。`npm run dev` 会读取本地 `.env`，检测到 `DEEPSEEK_API_KEY` 时自动同时启动 DeepSeek 代理和前端；未配置 API Key 或 `VITE_AI_COMMAND_ENDPOINT` 时，前端使用 mock provider 保证本地演示可用。AI 命令计划默认进入待确认状态，用户说“确认执行”后才进入执行器；画布总结、优化建议等洞察结果只进入反馈面板和语音播报，不进入执行器。
 
 ## 10. 如何运行
 
@@ -631,17 +631,30 @@ VITE_AI_COMMAND_ENDPOINT=/api/ai/commands npm run dev
 
 ### 10.8 使用 DeepSeek 真实模型代理
 
-先在一个终端启动本地代理：
+先复制环境变量示例：
 
 ```bash
-export DEEPSEEK_API_KEY=你的_DeepSeek_API_Key
-npm run ai:deepseek
+cp .env.example .env
 ```
 
-再在另一个终端启动已连接代理的前端：
+然后在 `.env` 中填写：
 
 ```bash
-npm run dev:ai
+DEEPSEEK_API_KEY=你的_DeepSeek_API_Key
+```
+
+之后正常启动项目：
+
+```bash
+npm run dev
+```
+
+`npm run dev` 检测到 `DEEPSEEK_API_KEY` 后，会自动同时启动 DeepSeek 代理和 Vite 前端。
+
+如果需要单独排查代理，可以运行：
+
+```bash
+npm run ai:deepseek
 ```
 
 默认代理地址为：
@@ -707,7 +720,7 @@ AI 能力不直接操作 DOM、SVG 或应用状态，而是输出结构化命令
 - 已增加 `AiCommandProvider` 接口和 `MockAiCommandProvider`。
 - 已增加 `validateDrawingCommands` 命令 schema 校验器。
 - 已增加 `HttpAiCommandProvider` 和 `VITE_AI_COMMAND_ENDPOINT` 配置入口，用于对接后端代理或本地 AI 服务。
-- 已增加 DeepSeek 本地代理服务，真实模型 API key 只保存在代理进程环境变量中。
+- 已增加 DeepSeek 本地代理服务，`npm run dev` 检测到 `DEEPSEEK_API_KEY` 时会自动启用真实模型能力，API key 只保存在代理进程环境变量中。
 - 已增加 `AiCommandPlanner`，支持复杂命令计划和多轮澄清状态。
 - 已增加 AI 解析开关、语音开关指令、待确认计划和前端执行入口。
 - 已增加一句话生成图示基础模板，mock provider 可生成多类流程图命令计划。

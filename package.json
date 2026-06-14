@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:vite": "vite",
     "dev:ai": "VITE_AI_COMMAND_ENDPOINT=http://localhost:8787/api/ai/commands vite",
     "ai:deepseek": "node server/deepseekProxy.mjs",
     "build": "tsc --noEmit && vite build",
