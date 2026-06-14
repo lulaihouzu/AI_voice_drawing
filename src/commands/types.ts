@@ -1,4 +1,4 @@
-export type ShapeType = "circle" | "rect" | "line" | "arrow" | "text";
+export type ShapeType = "circle" | "rect" | "triangle" | "line" | "arrow" | "text";
 
 export type Direction = "up" | "down" | "left" | "right";
 
@@ -28,6 +28,10 @@ export type PositionSpec = {
   region?: PositionRegion;
   x?: number;
   y?: number;
+  relative?: {
+    target: TargetSpec;
+    direction: Direction;
+  };
 };
 
 export type TargetSpec = {

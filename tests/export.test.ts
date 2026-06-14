@@ -28,7 +28,10 @@ describe("canvas export", () => {
   });
 
   it("parses project data with a valid active object", () => {
-    const objects: CanvasObject[] = [{ ...baseObject, type: "circle", radius: 48, name: "开始" }];
+    const objects: CanvasObject[] = [
+      { ...baseObject, type: "circle", radius: 48, name: "开始" },
+      { ...baseObject, id: "triangle-1", type: "triangle", x: 120, y: 240, width: 128, height: 112 },
+    ];
     const project = createCanvasProject(objects, "object-1");
     const parsedProject = parseCanvasProject(serializeCanvasProject(project));
 
@@ -40,6 +43,12 @@ describe("canvas export", () => {
           id: "object-1",
           type: "circle",
           name: "开始",
+        },
+        {
+          id: "triangle-1",
+          type: "triangle",
+          width: 128,
+          height: 112,
         },
       ],
     });
@@ -62,6 +71,7 @@ describe("canvas export", () => {
         style: { ...baseObject.style, fontSize: 28 },
       },
       { ...baseObject, id: "arrow-1", type: "arrow", x: 120, y: 140, width: 120, height: 0 },
+      { ...baseObject, id: "triangle-1", type: "triangle", x: 360, y: 180, width: 128, height: 112 },
     ];
     const svg = canvasObjectsToSvg(objects);
 
@@ -69,6 +79,7 @@ describe("canvas export", () => {
     expect(svg).toContain('<circle cx="120" cy="140" r="48"');
     expect(svg).toContain("开始 &lt;测试&gt;");
     expect(svg).toContain('marker-end="url(#arrow-head)"');
+    expect(svg).toContain('<polygon points="360,124 424,236 296,236"');
     expect(svg).toContain('fill="url(#canvas-grid)"');
   });
 

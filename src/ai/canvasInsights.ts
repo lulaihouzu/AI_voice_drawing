@@ -4,6 +4,7 @@ import type { CanvasObject, ShapeType } from "../commands/types";
 const shapeLabels: Record<ShapeType, string> = {
   circle: "圆形",
   rect: "矩形",
+  triangle: "三角形",
   line: "直线",
   arrow: "箭头",
   text: "文本",

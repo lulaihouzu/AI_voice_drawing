@@ -306,6 +306,7 @@ function extractTargetQuery(phrase: string): TargetQuery | undefined {
 function findTargetShape(phrase: string): ShapeType | undefined {
   if (phrase.includes("圆")) return "circle";
   if (phrase.includes("矩形") || phrase.includes("方框") || phrase.includes("方形")) return "rect";
+  if (phrase.includes("三角形") || phrase.includes("三角")) return "triangle";
   if (phrase.includes("箭头")) return "arrow";
   if (phrase.includes("文字") || phrase.includes("文本")) return "text";
   if (phrase.includes("线")) return "line";

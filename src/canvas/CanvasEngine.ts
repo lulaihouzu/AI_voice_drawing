@@ -2,8 +2,8 @@ import { createCanvasObject } from "./objectFactory";
 import type { CanvasObject, Direction, DrawingCommand, LayerAction, ShapePatch } from "../commands/types";
 
 export class CanvasEngine {
-  createObject(command: Extract<DrawingCommand, { type: "create" }>, existingObjects: CanvasObject[] = []) {
-    return createCanvasObject(command, existingObjects);
+  createObject(command: Extract<DrawingCommand, { type: "create" }>, existingObjects: CanvasObject[] = [], activeObjectId?: string) {
+    return createCanvasObject(command, existingObjects, activeObjectId);
   }
 
   updateObject(objects: CanvasObject[], targetId: string, patch: ShapePatch) {

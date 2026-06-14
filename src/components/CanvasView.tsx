@@ -43,6 +43,28 @@ function renderObject(object: CanvasObject, isActive: boolean) {
     );
   }
 
+  if (object.type === "triangle") {
+    const width = object.width ?? 128;
+    const height = object.height ?? 112;
+    const points = [
+      `${object.x},${object.y - height / 2}`,
+      `${object.x + width / 2},${object.y + height / 2}`,
+      `${object.x - width / 2},${object.y + height / 2}`,
+    ].join(" ");
+
+    return (
+      <polygon
+        key={object.id}
+        className={activeClassName}
+        points={points}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+    );
+  }
+
   if (object.type === "line" || object.type === "arrow") {
     return (
       <line

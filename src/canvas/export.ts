@@ -121,6 +121,18 @@ function renderSvgObject(object: CanvasObject) {
     return `<rect x="${object.x - width / 2}" y="${object.y - height / 2}" width="${width}" height="${height}" rx="8" fill="${escapeXml(fill)}" stroke="${escapeXml(stroke)}" stroke-width="${strokeWidth}" />`;
   }
 
+  if (object.type === "triangle") {
+    const width = object.width ?? 128;
+    const height = object.height ?? 112;
+    const points = [
+      `${object.x},${object.y - height / 2}`,
+      `${object.x + width / 2},${object.y + height / 2}`,
+      `${object.x - width / 2},${object.y + height / 2}`,
+    ].join(" ");
+
+    return `<polygon points="${escapeXml(points)}" fill="${escapeXml(fill)}" stroke="${escapeXml(stroke)}" stroke-width="${strokeWidth}" stroke-linejoin="round" />`;
+  }
+
   if (object.type === "line" || object.type === "arrow") {
     const markerEnd = object.type === "arrow" ? ' marker-end="url(#arrow-head)"' : "";
 

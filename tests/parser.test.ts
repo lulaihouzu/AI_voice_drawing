@@ -55,6 +55,28 @@ describe("parseCommand", () => {
     });
   });
 
+  it("parses solid triangle creation", () => {
+    const commands = expectOk(parseCommand("在这个红色的圆形下面再画一个实心的三角形"));
+
+    expect(commands[0]).toMatchObject({
+      type: "create",
+      shape: "triangle",
+      style: {
+        fill: "#1f2937",
+        stroke: "#1f2937",
+      },
+      position: {
+        region: "bottom",
+        relative: {
+          target: {
+            ref: "active",
+          },
+          direction: "down",
+        },
+      },
+    });
+  });
+
   it("parses line and arrow creation", () => {
     const lineCommands = expectOk(parseCommand("画一条黑色直线"));
     const arrowCommands = expectOk(parseCommand("从圆形指向矩形画一个箭头"));

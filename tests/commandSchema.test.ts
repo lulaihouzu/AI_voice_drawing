@@ -52,6 +52,51 @@ describe("validateDrawingCommands", () => {
     expect("dangerousUrl" in validation.commands[0]).toBe(false);
   });
 
+  it("accepts triangle creation with relative positioning", () => {
+    const validation = validateDrawingCommands([
+      {
+        type: "create",
+        shape: "triangle",
+        style: {
+          fill: "#1f2937",
+        },
+        position: {
+          relative: {
+            target: {
+              ref: "query",
+              query: {
+                shape: "circle",
+              },
+            },
+            direction: "down",
+          },
+        },
+      },
+    ]);
+
+    expect(validation.ok).toBe(true);
+
+    if (!validation.ok) {
+      throw new Error(validation.errors[0].message);
+    }
+
+    expect(validation.commands[0]).toMatchObject({
+      type: "create",
+      shape: "triangle",
+      position: {
+        relative: {
+          target: {
+            ref: "query",
+            query: {
+              shape: "circle",
+            },
+          },
+          direction: "down",
+        },
+      },
+    });
+  });
+
   it("rejects payloads that are not command arrays", () => {
     const validation = validateDrawingCommands({
       type: "create",

@@ -4,6 +4,7 @@ import type {
   DrawingCommand,
   LayerAction,
   ParseResult,
+  PositionSpec,
   PositionRegion,
   ShapeSize,
   ShapeType,
@@ -63,6 +64,7 @@ const directionMap: Array<[string, Direction]> = [
 const shapeKeywords: Array<[ShapeType, string[]]> = [
   ["arrow", ["箭头"]],
   ["text", ["文字", "文本", "写"]],
+  ["triangle", ["三角形", "三角"]],
   ["circle", ["圆形", "圆", "圈"]],
   ["rect", ["矩形", "长方形", "方形", "方块", "方框", "框"]],
   ["line", ["直线", "线条", "线"]],
@@ -202,7 +204,7 @@ function parseSingleClause(text: string, rawText: string): ParseResult {
   const shape = findShape(text);
 
   if (shape && isCreateLike(text, shape)) {
-    return ok(rawText, buildCreateCommands(text, shape, color));
+    return ok(rawText, buildCreateCommands(text, shape, findCreateColor(text)));
   }
 
   return unsupported(rawText, "暂时无法解析这条指令。");
@@ -416,7 +418,8 @@ function findTargetSizeRank(text: string): TargetQuery["sizeRank"] | undefined {
 }
 
 function findShape(text: string) {
-  const createdShape = findShapeAfterCreateVerb(text);
+  const createdPhrase = findCreatedPhrase(text);
+  const createdShape = createdPhrase ? findAnyShape(createdPhrase) : undefined;
 
   if (createdShape) {
     return createdShape;
@@ -425,14 +428,18 @@ function findShape(text: string) {
   return findAnyShape(text);
 }
 
-function findShapeAfterCreateVerb(text: string) {
-  const match = text.match(/(?:画|绘制|创建|添加|生成)(.+)$/);
-
-  return match ? findAnyShape(match[1]) : undefined;
-}
-
 function findAnyShape(text: string) {
   return shapeKeywords.find(([, keywords]) => keywords.some((keyword) => text.includes(keyword)))?.[0];
+}
+
+function findCreateColor(text: string) {
+  const createdPhrase = findCreatedPhrase(text);
+
+  return createdPhrase ? findColor(createdPhrase) : findColor(text);
+}
+
+function findCreatedPhrase(text: string) {
+  return text.match(/(?:画|绘制|创建|添加|生成)(.+)$/)?.[1];
 }
 
 function buildCreateCommands(text: string, shape: ShapeType, color?: string): DrawingCommand[] {
@@ -450,20 +457,64 @@ function buildCreateCommands(text: string, shape: ShapeType, color?: string): Dr
 }
 
 function buildCreateCommand(text: string, shape: ShapeType, color?: string): Extract<DrawingCommand, { type: "create" }> {
+  const fill = color ?? (text.includes("实心") && shape !== "line" && shape !== "arrow" && shape !== "text" ? "#1f2937" : undefined);
+  const position = buildCreatePosition(text);
+
   return {
     type: "create",
     shape,
     style: {
-      fill: shape === "line" || shape === "arrow" || shape === "text" ? undefined : color,
+      fill: shape === "line" || shape === "arrow" || shape === "text" ? undefined : fill,
       stroke: color ?? "#1f2937",
     },
-    position: {
-      region: findPosition(text) ?? "center",
-    },
+    position,
     text: shape === "text" ? extractText(text) : undefined,
     size: findSize(text),
     connection: shape === "arrow" ? extractConnection(text) : undefined,
   };
+}
+
+function buildCreatePosition(text: string): PositionSpec {
+  const relative = extractRelativeCreatePosition(text);
+
+  return {
+    region: findPosition(text) ?? "center",
+    relative,
+  };
+}
+
+function extractRelativeCreatePosition(text: string): PositionSpec["relative"] {
+  const direction = findRelativeCreateDirection(text);
+  const target = extractRelativeCreateTarget(text);
+
+  return direction && target ? { target, direction } : undefined;
+}
+
+function findRelativeCreateDirection(text: string): Direction | undefined {
+  if (text.includes("左边") || text.includes("左侧")) {
+    return "left";
+  }
+
+  if (text.includes("右边") || text.includes("右侧") || text.includes("旁边")) {
+    return "right";
+  }
+
+  if (text.includes("上方") || text.includes("上面") || text.includes("之上")) {
+    return "up";
+  }
+
+  if (text.includes("下方") || text.includes("下面") || text.includes("之下")) {
+    return "down";
+  }
+
+  return undefined;
+}
+
+function extractRelativeCreateTarget(text: string): TargetSpec | undefined {
+  const match = text.match(/^(?:在)?(.+?)(?:旁边|左边|左侧|右边|右侧|上方|上面|下面|下方|之上|之下).*?(?:画|绘制|创建|添加|生成)/);
+  const target = toTarget(match?.[1]);
+
+  return target.ref === "active" && !match?.[1] ? undefined : target;
 }
 
 function findQuantity(text: string) {
@@ -517,7 +568,7 @@ function isCreateLike(text: string, shape: ShapeType) {
     return true;
   }
 
-  return text.includes("画") || text.includes("创建") || text.includes("添加");
+  return text.includes("画") || text.includes("绘制") || text.includes("创建") || text.includes("添加") || text.includes("生成");
 }
 
 function splitClauses(text: string) {
